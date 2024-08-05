@@ -1,10 +1,11 @@
 
 use crate::piece::{Piece, N_PIECES};
+use crate::movegen::ChessMove;
 use std::collections::HashMap;
 use std::fmt;
 
 // Use the Piece enum to index the correct boards
-pub struct Bitboards {
+pub struct Board {
     pub black: [u64; N_PIECES],
     pub white: [u64; N_PIECES],
     pub white_turn: bool,
@@ -17,7 +18,7 @@ pub struct Bitboards {
     pub fullmove_number: i32
 }
 
-impl Bitboards {
+impl Board {
     pub fn new() -> Self {
         Self {
             black: [0; N_PIECES],
@@ -51,7 +52,8 @@ impl Bitboards {
             ("k", Piece::King),
         ]);
 
-        let (mut rank, mut file) = (7, 0);
+        // Chess uses rank which is literally just row, but backwards
+        let (mut row, mut col) = (7, 0);
         let mut index: usize = 0;
 
         // Piece positions
@@ -59,12 +61,12 @@ impl Bitboards {
             index += 1;
             match c {
                 '/' => {
-                    rank -= 1;
-                    file = 0;
+                    row -= 1;
+                    col = 0;
                 },
-                '1'..='8' => file += c.to_digit(10).unwrap(), // Empty squares
+                '1'..='8' => col += c.to_digit(10).unwrap(), // Empty squares
                 'a'..='z' | 'A'..='Z' => {
-                    let pos = 1_u64 << (rank * 8 + file);
+                    let pos = 1_u64 << (row * 8 + col);
                     let key = c.to_lowercase().to_string();
                     if c.is_lowercase() {
                         if let Some(&piece) = letter_to_piece.get(key.as_str()) {
@@ -75,7 +77,7 @@ impl Bitboards {
                             self.set(piece, true, pos);
                         }
                     }
-                    file += 1;
+                    col += 1;
                 },
                 ' ' => break,
                 _ => ()
@@ -122,30 +124,59 @@ impl Bitboards {
         self.fullmove_number = fen[index..end].parse().unwrap_or(0);
     }
 
-    pub fn bit_pos_to_rank_file(pos: i32) -> (i32, i32) {
-        let rank = pos / 8;
-        let file = pos % 8;
-        return (rank, file);
+    pub fn index_to_row_col(pos: i32) -> (i32, i32) {
+        return (pos / 8, pos % 8);
     }
 
-    pub fn get_ranks_and_files(bitboard: u64) -> Vec<(i32, i32)> {
+    pub fn row_col_to_index(row: i32, col: i32) -> i32 {
+        return row * 8 + col;
+    }
+
+    pub fn get_rows_and_cols(bitboard: u64) -> Vec<(i32, i32)> {
         let mut res: Vec<(i32, i32)> = Vec::new();
         for pos in 0..64 {
             if (bitboard & (1_u64 << pos)) != 0 {
-                res.push(Self::bit_pos_to_rank_file(pos));
+                res.push(Self::index_to_row_col(pos));
             }
         }
         return res;
     }
+
+    pub fn index_to_u64(index: i32) -> u64 {
+        return 1_u64 << index;
+    }
+
+    pub fn row_col_to_u64(row: i32, col: i32) -> u64 {
+        return Self::index_to_u64(Self::row_col_to_index(row, col));
+    }
+
+    pub fn apply_move(&mut self, m: ChessMove) {
+        if m.is_white {
+            self.white[m.kind as usize] ^= 1_u64 << m.from | 1_u64 << m.to;
+        } else {
+            self.black[m.kind as usize] ^= 1_u64 << m.from | 1_u64 << m.to;
+        }
+    }
+
+    pub fn is_occupied(&self, coords: (i32, i32)) -> bool {
+        let bits = Board::row_col_to_u64(coords.0, coords.1);
+        for piece in Piece::iterator() {
+            if (self.black[*piece as usize] & bits) != 0 || (self.white[*piece as usize] & bits) != 0 {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
 
-impl fmt::Display for Bitboards {
+impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fn format_bitboard(bitboard: u64) -> String {
             let mut output = String::new();
-            for rank in (0..8).rev() {
-                for file in 0..8 {
-                    let pos = 1 << (rank * 8 + file);
+            for row in (0..8).rev() {
+                for col in 0..8 {
+                    let pos = 1 << (row * 8 + col);
                     if bitboard & pos != 0 {
                         output.push('1');
                     } else {

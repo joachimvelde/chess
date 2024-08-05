@@ -1,9 +1,11 @@
 mod piece;
-mod bitboards;
+mod board;
+mod movegen;
 mod draw;
 
 use piece::*;
-use bitboards::*;
+use board::*;
+use movegen::*;
 use draw::*;
 
 use raylib::prelude::*;
@@ -19,7 +21,7 @@ fn main() {
     rl.set_target_fps(60);
 
     // Create the board
-    let mut board = Bitboards::new();
+    let mut board = Board::new();
     board.apply_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
 
     // load textures
@@ -44,5 +46,11 @@ fn main() {
     // Main game loop
     while !rl.window_should_close() {
         draw(&mut rl, &thread, &board, &black_textures, &white_textures);
+
+        if rl.is_mouse_button_pressed(raylib::consts::MouseButton::MOUSE_BUTTON_LEFT) {
+            for m in MoveGen::pawns(&board) {
+                board.apply_move(m);
+            }
+        }
     }
 }
