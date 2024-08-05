@@ -121,6 +121,22 @@ impl Bitboards {
         let end = fen[index..].find(' ').unwrap_or(fen.len() - index) + index;
         self.fullmove_number = fen[index..end].parse().unwrap_or(0);
     }
+
+    pub fn bit_pos_to_rank_file(pos: i32) -> (i32, i32) {
+        let rank = pos / 8;
+        let file = pos % 8;
+        return (rank, file);
+    }
+
+    pub fn get_ranks_and_files(bitboard: u64) -> Vec<(i32, i32)> {
+        let mut res: Vec<(i32, i32)> = Vec::new();
+        for pos in 0..64 {
+            if (bitboard & (1_u64 << pos)) != 0 {
+                res.push(Self::bit_pos_to_rank_file(pos));
+            }
+        }
+        return res;
+    }
 }
 
 impl fmt::Display for Bitboards {
