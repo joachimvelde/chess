@@ -24,7 +24,7 @@ pub fn draw_pieces(d: &mut RaylibDrawHandle, board: &Bitboards, black_textures: 
                 white_textures.get(*piece as usize).unwrap(),
                 Vector2::new(file as f32 * tile_dim, rank as f32 * tile_dim),
                 0.00, // Rotation
-                0.05,  // Scale
+                0.053,  // Scale
                 Color::WHITE);
         }
 
