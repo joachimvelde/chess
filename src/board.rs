@@ -1,21 +1,23 @@
-
-use crate::piece::{Piece, N_PIECES};
+use crate::piece::{Piece, PieceKind, N_PIECES, Player};
 use crate::movegen::ChessMove;
 use std::collections::HashMap;
 use std::fmt;
 
-// Use the Piece enum to index the correct boards
+// Use the PieceKind enum to index the correct boards
 pub struct Board {
     pub black: [u64; N_PIECES],
     pub white: [u64; N_PIECES],
-    pub white_turn: bool,
+    pub turn: Player,
     pub white_castling_k: bool,
     pub white_castling_q: bool,
     pub black_castling_k: bool,
     pub black_castling_q: bool,
     pub en_passant_target: Option<String>,
     pub halfmove_clock: i32,
-    pub fullmove_number: i32
+    pub fullmove_number: i32,
+
+    // For drawing
+    pub selected_piece: Option<Piece>
 }
 
 impl Board {
@@ -23,18 +25,19 @@ impl Board {
         Self {
             black: [0; N_PIECES],
             white: [0; N_PIECES],
-            white_turn: true,
+            turn: Player::White,
             white_castling_k: false,
             white_castling_q: false,
             black_castling_k: false,
             black_castling_q: false,
             en_passant_target: None,
             halfmove_clock: 0,
-            fullmove_number: 0
+            fullmove_number: 0,
+            selected_piece: None
         }
     }
 
-    pub fn set(&mut self, piece: Piece, is_white: bool, pos: u64) {
+    pub fn set(&mut self, piece: PieceKind, is_white: bool, pos: u64) {
         if is_white {
             self.white[piece as usize] |= pos;
         } else {
@@ -44,19 +47,19 @@ impl Board {
 
     pub fn apply_fen(&mut self, fen: String) {
         let letter_to_piece = HashMap::from([
-            ("p", Piece::Pawn),
-            ("n", Piece::Knight),
-            ("b", Piece::Bishop),
-            ("r", Piece::Rook),
-            ("q", Piece::Queen),
-            ("k", Piece::King),
+            ("p", PieceKind::Pawn),
+            ("n", PieceKind::Knight),
+            ("b", PieceKind::Bishop),
+            ("r", PieceKind::Rook),
+            ("q", PieceKind::Queen),
+            ("k", PieceKind::King),
         ]);
 
         // Chess uses rank which is literally just row, but backwards
         let (mut row, mut col) = (7, 0);
         let mut index: usize = 0;
 
-        // Piece positions
+        // PieceKind positions
         for c in fen.chars() {
             index += 1;
             match c {
@@ -86,8 +89,8 @@ impl Board {
 
         // Player turn
         match fen.chars().nth(index).unwrap() {
-            'w' => self.white_turn = true,
-            'b' => self.white_turn = false,
+            'w' => self.turn = Player::White,
+            'b' => self.turn = Player::Black,
             _ => ()
         }
         index += 2; // Skip next space
@@ -124,6 +127,48 @@ impl Board {
         self.fullmove_number = fen[index..end].parse().unwrap_or(0);
     }
 
+    pub fn at(&self, coords: (i32, i32)) -> Option<Piece> {
+        let bit = Board::row_col_to_u64(coords.0, coords.1);
+
+        for player in [Player::Black, Player::White] {
+            let boards = match player {
+                Player::Black => self.black,
+                Player::White => self.white
+            };
+
+            for (i, &board) in boards.iter().enumerate() {
+                if board & bit != 0 {
+                    let kind = match i {
+                        0 => PieceKind::Pawn,
+                        1 => PieceKind::Knight,
+                        2 => PieceKind::Bishop,
+                        3 => PieceKind::Rook,
+                        4 => PieceKind::Queen,
+                        5 => PieceKind::King,
+                        _ => unreachable!()
+                    };
+
+                    return Some(Piece::new(player, kind, Self::row_col_to_index(coords.0, coords.1)));
+                }
+            }
+        }
+
+        None
+    }
+
+    pub fn select(&mut self, coords: (i32, i32)) {
+        self.selected_piece = self.at(coords);
+    }
+
+    pub fn is_selected(&self) -> bool {
+        return self.selected_piece.is_some();
+    }
+
+    pub fn get_selected(&self) -> Piece {
+        assert!(self.is_selected());
+        return self.selected_piece.unwrap();
+    }
+
     pub fn index_to_row_col(pos: i32) -> (i32, i32) {
         return (pos / 8, pos % 8);
     }
@@ -158,9 +203,17 @@ impl Board {
         }
     }
 
+    pub fn in_bounds(coords: (i32, i32)) -> bool {
+        return coords.0 >= 0 && coords.0 <= 7 && coords.1 >= 0 && coords.1 <= 7;
+    }
+
     pub fn is_occupied(&self, coords: (i32, i32)) -> bool {
+        if !Self::in_bounds(coords) {
+            return false;
+        }
+
         let bits = Board::row_col_to_u64(coords.0, coords.1);
-        for piece in Piece::iterator() {
+        for piece in PieceKind::iterator() {
             if (self.black[*piece as usize] & bits) != 0 || (self.white[*piece as usize] & bits) != 0 {
                 return true;
             }
@@ -190,7 +243,7 @@ impl fmt::Display for Board {
 
 
         write!(f, "--- [BOARD] ---\n")?;
-        write!(f, "white_turn: {}\n", self.white_turn)?;
+        write!(f, "turn: {}\n", self.turn)?;
         write!(f, "white_castling_k: {}\n", self.white_castling_k)?;
         write!(f, "white_castling_q: {}\n", self.white_castling_q)?;
         write!(f, "black_castling_k: {}\n", self.black_castling_k)?;
@@ -201,12 +254,12 @@ impl fmt::Display for Board {
 
         write!(f, "\nBlack bitboards")?;
         for (i, bb) in self.black.iter().enumerate() {
-            write!(f, "\nPiece {}: \n{}", i, format_bitboard(*bb))?;
+            write!(f, "\nPieceKind {}: \n{}", i, format_bitboard(*bb))?;
         }
 
         write!(f, "\nWhite bitboards")?;
         for (i, bb) in self.white.iter().enumerate() {
-            write!(f, "\nPiece {}: \n{}", i, format_bitboard(*bb))?;
+            write!(f, "\nPieceKind {}: \n{}", i, format_bitboard(*bb))?;
         }
 
         Ok(())

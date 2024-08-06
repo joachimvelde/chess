@@ -45,12 +45,14 @@ fn main() {
 
     // Main game loop
     while !rl.window_should_close() {
+        update(&rl, &mut board);
         draw(&mut rl, &thread, &board, &black_textures, &white_textures);
+    }
+}
 
-        if rl.is_mouse_button_pressed(raylib::consts::MouseButton::MOUSE_BUTTON_LEFT) {
-            for m in MoveGen::pawns(&board) {
-                board.apply_move(m);
-            }
-        }
+fn update(rl: &RaylibHandle, board: &mut Board) {
+    if rl.is_mouse_button_pressed(raylib::consts::MouseButton::MOUSE_BUTTON_LEFT) {
+        let (row, col) = ((rl.get_mouse_y() as f32 / 100.0).floor() as i32, (rl.get_mouse_x() as f32 / 100.0).floor() as i32);
+        board.select((row, col));
     }
 }
