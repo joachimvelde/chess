@@ -22,7 +22,8 @@ fn main() {
 
     // Create the board
     let mut board = Board::new();
-    board.apply_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
+    // board.apply_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
+    board.apply_fen("rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2".to_string());
 
     // load textures
     let black_textures = vec![
@@ -53,6 +54,10 @@ fn main() {
 fn update(rl: &RaylibHandle, board: &mut Board) {
     if rl.is_mouse_button_pressed(raylib::consts::MouseButton::MOUSE_BUTTON_LEFT) {
         let (row, col) = ((rl.get_mouse_y() as f32 / 100.0).floor() as i32, (rl.get_mouse_x() as f32 / 100.0).floor() as i32);
-        board.select((row, col));
+
+        let piece = board.at((row, col));
+        if piece.is_some() && piece.unwrap().player == board.turn {
+            board.select((row, col));
+        }
     }
 }

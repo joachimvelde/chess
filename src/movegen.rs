@@ -6,12 +6,13 @@ pub struct ChessMove {
     pub from: i32, // The position in the bitboard
     pub to: i32,
     pub kind: PieceKind,
-    pub is_white: bool
+    pub player: Player
 }
 
+// Is it necessary to include the piece kind here?
 impl ChessMove {
-    pub fn new(from: i32, to: i32, kind: PieceKind, is_white: bool) -> Self {
-        return Self { from, to, kind, is_white }
+    pub fn new(from: i32, to: i32, kind: PieceKind, player: Player) -> Self {
+        return Self { from, to, kind, player }
     }
 }
 
@@ -42,7 +43,7 @@ impl MoveGen {
                     Board::row_col_to_index(row, col),
                     Board::row_col_to_index(row + dir, col),
                     PieceKind::Pawn,
-                    true
+                    board.turn
                 ));
         }
         

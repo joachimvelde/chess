@@ -12,13 +12,13 @@ pub enum PieceKind {
     King
 }
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Player {
     Black,
     White
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Piece {
     pub player: Player,
     pub kind: PieceKind,

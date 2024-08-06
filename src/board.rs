@@ -196,10 +196,9 @@ impl Board {
     }
 
     pub fn apply_move(&mut self, m: ChessMove) {
-        if m.is_white {
-            self.white[m.kind as usize] ^= 1_u64 << m.from | 1_u64 << m.to;
-        } else {
-            self.black[m.kind as usize] ^= 1_u64 << m.from | 1_u64 << m.to;
+        match m.player {
+            Player::White => self.white[m.kind as usize] ^= 1_u64 << m.from | 1_u64 << m.to,
+            Player::Black => self.black[m.kind as usize] ^= 1_u64 << m.from | 1_u64 << m.to
         }
     }
 
