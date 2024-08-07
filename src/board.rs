@@ -48,6 +48,7 @@ impl Board {
     pub fn reset(&mut self) {
         self.black = [0; N_PIECES];
         self.white = [0; N_PIECES];
+        self.deselect();
         self.apply_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
     }
 
@@ -238,10 +239,21 @@ impl Board {
     }
 
     pub fn apply_move(&mut self, m: ChessMove) {
+        // Handle kills
+        let victim = self.at(Self::index_to_row_col(m.to));
+        if victim.is_some() {
+            match victim.unwrap().player {
+                Player::White => self.white[victim.unwrap().kind as usize] ^= 1u64 << m.to,
+                Player::Black => self.black[victim.unwrap().kind as usize] ^= 1u64 << m.to,
+            }
+        }
+
+        // Move the piece
         match m.player {
             Player::White => self.white[m.kind as usize] ^= 1_u64 << m.from | 1_u64 << m.to,
             Player::Black => self.black[m.kind as usize] ^= 1_u64 << m.from | 1_u64 << m.to
         }
+
         self.swap_turns();
     }
 
