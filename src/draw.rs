@@ -1,12 +1,13 @@
 use crate::{WIDTH, HEIGHT};
 use crate::board::Board;
 use crate::piece::{PieceKind, N_PIECES};
+use crate::movegen::MoveGen;
 
 use raylib::prelude::*;
 
-pub fn mark_tile(d: &mut RaylibDrawHandle, row: i32, col: i32) {
+pub fn mark_tile(d: &mut RaylibDrawHandle, row: i32, col: i32, colour: Color) {
     let tile_dim = WIDTH / 8;
-    d.draw_rectangle(tile_dim * col, tile_dim * row, tile_dim, tile_dim, Color::from_hex("ff0f5f").unwrap());
+    d.draw_rectangle(tile_dim * col, tile_dim * row, tile_dim, tile_dim, colour);
 }
 
 pub fn draw_tiles(d: &mut RaylibDrawHandle, board: &Board) {
@@ -22,7 +23,12 @@ pub fn draw_tiles(d: &mut RaylibDrawHandle, board: &Board) {
     for row in 0..8 {
         for col in 0..8 {
             if board.is_selected() && Board::index_to_row_col(board.get_selected().index) == (row, col) {
-                mark_tile(d, row, col);
+                mark_tile(d, row, col, Color::from_hex("ff0f5f").unwrap());
+
+                for m in MoveGen::piece_at(board, (row, col)) {
+                    let coords = Board::index_to_row_col(m.to);
+                    mark_tile(d, coords.0, coords.1, Color::from_hex("ff0f5f").unwrap());
+                }
             }
         }
     }

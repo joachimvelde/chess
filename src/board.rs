@@ -17,7 +17,7 @@ pub struct Board {
     pub fullmove_number: i32,
 
     // For drawing
-    pub selected_piece: Option<Piece>
+    selected_piece: Option<Piece>
 }
 
 impl Board {
@@ -43,6 +43,12 @@ impl Board {
         } else {
             self.black[piece as usize] |= pos;
         }
+    }
+
+    pub fn reset(&mut self) {
+        self.black = [0; N_PIECES];
+        self.white = [0; N_PIECES];
+        self.apply_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
     }
 
     pub fn apply_fen(&mut self, fen: String) {
@@ -156,8 +162,22 @@ impl Board {
         None
     }
 
+    pub fn get_empty_squares(&self) -> u64 {
+        let mut pieces: u64 = 0;
+
+        for kind in PieceKind::iterator() {
+            pieces |= self.black[*kind as usize] | self.white[*kind as usize];
+        }
+
+        !pieces
+    }
+
     pub fn select(&mut self, coords: (i32, i32)) {
         self.selected_piece = self.at(coords);
+    }
+
+    pub fn deselect(&mut self) {
+        self.selected_piece = None;
     }
 
     pub fn is_selected(&self) -> bool {
@@ -188,11 +208,22 @@ impl Board {
     }
 
     pub fn index_to_u64(index: i32) -> u64 {
-        return 1_u64 << index;
+        1_u64 << index
+    }
+
+    pub fn u64_to_index(x: u64) -> i32 {
+        x.trailing_zeros() as i32
     }
 
     pub fn row_col_to_u64(row: i32, col: i32) -> u64 {
-        return Self::index_to_u64(Self::row_col_to_index(row, col));
+        Self::index_to_u64(Self::row_col_to_index(row, col))
+    }
+
+    pub fn swap_turns(&mut self) {
+        match self.turn {
+            Player::White => self.turn = Player::Black,
+            Player::Black => self.turn = Player::White
+        }
     }
 
     pub fn apply_move(&mut self, m: ChessMove) {
@@ -200,10 +231,11 @@ impl Board {
             Player::White => self.white[m.kind as usize] ^= 1_u64 << m.from | 1_u64 << m.to,
             Player::Black => self.black[m.kind as usize] ^= 1_u64 << m.from | 1_u64 << m.to
         }
+        self.swap_turns();
     }
 
     pub fn in_bounds(coords: (i32, i32)) -> bool {
-        return coords.0 >= 0 && coords.0 <= 7 && coords.1 >= 0 && coords.1 <= 7;
+        coords.0 >= 0 && coords.0 <= 7 && coords.1 >= 0 && coords.1 <= 7
     }
 
     pub fn is_occupied(&self, coords: (i32, i32)) -> bool {

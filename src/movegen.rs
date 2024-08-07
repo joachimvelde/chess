@@ -1,6 +1,7 @@
-use crate::piece::{PieceKind, Player};
+use crate::piece::{Piece, PieceKind, Player};
 use crate::board::Board;
 
+// TODO: Decide if kind and player are actually needed
 #[derive(Debug)]
 pub struct ChessMove {
     pub from: i32, // The position in the bitboard
@@ -19,7 +20,6 @@ impl ChessMove {
 pub struct MoveGen {
 }
 
-// This is fine for now, but later we should look into magic bitboards
 impl MoveGen {
     pub fn all(board: &Board) -> Vec<ChessMove> {
         todo!();
@@ -51,5 +51,51 @@ impl MoveGen {
         return moves.into_iter()
             .filter(|m| !board.is_occupied(Board::index_to_row_col(m.to)))
             .collect();
+    }
+
+    pub fn piece_at(board: &Board, coords: (i32, i32)) -> Vec<ChessMove> {
+        let piece: Piece = board.at(coords).expect("Not piece at position");
+        let mut moves: Vec<ChessMove> = Vec::new();
+
+        let empty_squares = board.get_empty_squares();
+        
+        let dir: i32 = if board.turn == Player::White { 1 } else { -1 };
+
+        match piece.kind {
+            PieceKind::Pawn => {
+                let single_push = Self::shift(Board::index_to_u64(piece.index), 8 * dir) & empty_squares;
+                moves.push(ChessMove::new(
+                        Board::row_col_to_index(coords.0, coords.1), Board::u64_to_index(single_push),
+                        piece.kind,
+                        piece.player
+                ));
+
+                if (coords.0 == 1 && piece.player == Player::White) || (coords.0 == 6 && piece.player == Player::Black)  {
+                    let double_push = Self::shift(Board::index_to_u64(piece.index), 16 * dir) & empty_squares;
+                    moves.push(ChessMove::new(
+                            Board::row_col_to_index(coords.0, coords.1), Board::u64_to_index(double_push),
+                            piece.kind,
+                            piece.player
+                    ));
+                }
+
+                // TODO: Kills
+            },
+            PieceKind::Knight => (),
+            PieceKind::Bishop => (),
+            PieceKind::Rook => (),
+            PieceKind::Queen => (),
+            PieceKind::King => ()
+        }
+
+        moves
+    }
+
+    // Helper that allows us to shift with negative values
+    fn shift(x: u64, shamt: i32) -> u64 {
+        match shamt > 0 {
+            true =>  x <<  shamt,
+            false => x >> -shamt
+        }
     }
 }
