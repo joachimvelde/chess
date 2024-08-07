@@ -49,8 +49,6 @@ impl MoveGen {
 
         for i in 0..u64::BITS {
             if (pawns >> i) != 0 {
-                
-
                 let single_push = shift(1u64, i as i32 + dir * 8) & !friends & !enemies;
                 let double_push = shift(single_push, dir * 8) & !friends & !enemies;
 
