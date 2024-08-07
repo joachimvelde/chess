@@ -60,7 +60,7 @@ fn update(rl: &RaylibHandle, board: &mut Board) {
         let (row, col) = ((rl.get_mouse_y() as f32 / 100.0).floor() as i32, (rl.get_mouse_x() as f32 / 100.0).floor() as i32);
 
         let piece = board.at((row, col));
-        if piece.is_some() && piece.unwrap().player == board.turn {
+        if piece.is_some() && piece.unwrap().player == board.get_turn() {
             board.select((row, col));
         } else if board.is_selected() {
             for m in MoveGen::piece_at(board, Board::index_to_row_col(board.get_selected().index)) {

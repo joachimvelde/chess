@@ -26,70 +26,70 @@ impl MoveGen {
     }
 
     pub fn pawns(board: &Board) -> Vec<ChessMove> {
-        // Finds pawns
-        let pawns: Vec<(i32, i32)>;
-        if board.turn == Player::White {
-            pawns = Board::get_rows_and_cols(board.white[PieceKind::Pawn as usize]);
-        } else {
-            pawns = Board::get_rows_and_cols(board.black[PieceKind::Pawn as usize]);
-        }
-
-        // Create possible moves
-        let mut moves: Vec<ChessMove> = Vec::new();
-        let dir: i32 = if board.turn == Player::White { 1 } else { -1 };
-        for (row, col) in pawns {
-            moves.push(
-                ChessMove::new(
-                    Board::row_col_to_index(row, col),
-                    Board::row_col_to_index(row + dir, col),
-                    PieceKind::Pawn,
-                    board.turn
-                ));
-        }
-        
-        // Filter out invalid ones
-        return moves.into_iter()
-            .filter(|m| !board.is_occupied(Board::index_to_row_col(m.to)))
-            .collect();
-    }
-
-    pub fn piece_at(board: &Board, coords: (i32, i32)) -> Vec<ChessMove> {
-        let piece: Piece = board.at(coords).expect("Not piece at position");
+        let pawns: u64;
+        let friends: u64;
+        let enemies: u64;
         let mut moves: Vec<ChessMove> = Vec::new();
 
-        let empty_squares = board.get_empty_squares();
-        
-        let dir: i32 = if board.turn == Player::White { 1 } else { -1 };
+        match board.get_turn() {
+            Player::White => {
+                pawns = board.white[PieceKind::Pawn as usize];
+                friends = board.get_occupied(Player::Black);
+                enemies = board.get_occupied(Player::White);
+            },
+            Player::Black => {
+                pawns = board.black[PieceKind::Pawn as usize];
+                friends = board.get_occupied(Player::White);
+                enemies = board.get_occupied(Player::Black);
+            }
+        }
 
-        match piece.kind {
-            PieceKind::Pawn => {
-                let single_push = Self::shift(Board::index_to_u64(piece.index), 8 * dir) & empty_squares;
-                moves.push(ChessMove::new(
-                        Board::row_col_to_index(coords.0, coords.1), Board::u64_to_index(single_push),
-                        piece.kind,
-                        piece.player
-                ));
+        for i in 0..u64::BITS {
+            let bit = (pawns >> i) & 0b1;
+            if bit != 0 {
+                let forward: i32 = match board.get_turn() {
+                    Player::White => 8,
+                    Player::Black => -8
+                };
+                let single_push = Self::shift(1u64, i as i32 + forward) & !friends & !enemies;
+                let double_push = Self::shift(single_push, forward) & !friends & !enemies;
 
-                // BUG: There is no check for wether the first tile is empty or not
-                if (coords.0 == 1 && piece.player == Player::White) || (coords.0 == 6 && piece.player == Player::Black)  {
-                    let double_push = Self::shift(Board::index_to_u64(piece.index), 16 * dir) & empty_squares;
+                if single_push != 0 {
+                    moves.push(ChessMove::new(i as i32, Board::u64_to_index(single_push), PieceKind::Pawn, board.get_turn()));
+                }
+
+                if double_push != 0 &&
+                    ((board.get_turn() == Player::White && Board::index_to_row_col(i as i32).0 == 1) ||
+                     (board.get_turn() == Player::Black && Board::index_to_row_col(i as i32).0 == 6))
+                {
                     moves.push(ChessMove::new(
-                            Board::row_col_to_index(coords.0, coords.1), Board::u64_to_index(double_push),
-                            piece.kind,
-                            piece.player
+                            i as i32,
+                            Board::u64_to_index(double_push),
+                            PieceKind::Pawn, board.get_turn()
                     ));
                 }
 
                 // TODO: Kills
-            },
-            PieceKind::Knight => (),
-            PieceKind::Bishop => (),
-            PieceKind::Rook => (),
-            PieceKind::Queen => (),
-            PieceKind::King => ()
+            }
         }
 
         moves
+    }
+
+    pub fn piece_at(board: &Board, coords: (i32, i32)) -> Vec<ChessMove> {
+        match board.at(coords).unwrap().kind {
+            PieceKind::Pawn => {
+                Self::pawns(board)
+                .into_iter()
+                .filter(|m| Board::index_to_row_col(m.from) == coords)
+                .collect()
+            }
+            PieceKind::Knight => vec![],
+            PieceKind::Bishop => vec![],
+            PieceKind::Rook => vec![],
+            PieceKind::Queen => vec![],
+            PieceKind::King => vec![]
+        }
     }
 
     // Helper that allows us to shift with negative values

@@ -7,7 +7,7 @@ use std::fmt;
 pub struct Board {
     pub black: [u64; N_PIECES],
     pub white: [u64; N_PIECES],
-    pub turn: Player,
+    turn: Player,
     pub white_castling_k: bool,
     pub white_castling_q: bool,
     pub black_castling_k: bool,
@@ -162,14 +162,21 @@ impl Board {
         None
     }
 
-    pub fn get_empty_squares(&self) -> u64 {
+    pub fn get_occupied(&self, player: Player) -> u64 {
         let mut pieces: u64 = 0;
 
-        for kind in PieceKind::iterator() {
-            pieces |= self.black[*kind as usize] | self.white[*kind as usize];
+        for &kind in PieceKind::iterator() {
+            match player {
+                Player::White => pieces |= self.white[kind as usize],
+                Player::Black => pieces |= self.black[kind as usize]
+            }
         }
 
-        !pieces
+        pieces
+    }
+
+    pub fn get_empty(&self) -> u64 {
+        !(self.get_occupied(Player::White) | self.get_occupied(Player::Black))
     }
 
     pub fn select(&mut self, coords: (i32, i32)) {
@@ -217,6 +224,10 @@ impl Board {
 
     pub fn row_col_to_u64(row: i32, col: i32) -> u64 {
         Self::index_to_u64(Self::row_col_to_index(row, col))
+    }
+
+    pub fn get_turn(&self) -> Player {
+        self.turn
     }
 
     pub fn swap_turns(&mut self) {
