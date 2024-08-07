@@ -26,6 +26,7 @@ impl MoveGen {
     }
 
     pub fn pawns(board: &Board) -> Vec<ChessMove> {
+        let dir: i32;
         let pawns: u64;
         let friends: u64;
         let enemies: u64;
@@ -33,11 +34,13 @@ impl MoveGen {
 
         match board.get_turn() {
             Player::White => {
+                dir = 1;
                 pawns = board.white[PieceKind::Pawn as usize];
                 friends = board.get_occupied(Player::White);
                 enemies = board.get_occupied(Player::Black);
             },
             Player::Black => {
+                dir = -1;
                 pawns = board.black[PieceKind::Pawn as usize];
                 friends = board.get_occupied(Player::Black);
                 enemies = board.get_occupied(Player::White);
@@ -46,10 +49,7 @@ impl MoveGen {
 
         for i in 0..u64::BITS {
             if (pawns >> i) != 0 {
-                let dir = match board.get_turn() {
-                    Player::White => 1,
-                    Player::Black => -1
-                };
+                
 
                 let single_push = shift(1u64, i as i32 + dir * 8) & !friends & !enemies;
                 let double_push = shift(single_push, dir * 8) & !friends & !enemies;
