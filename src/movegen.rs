@@ -70,6 +70,7 @@ impl MoveGen {
                         piece.player
                 ));
 
+                // BUG: There is no check for wether the first tile is empty or not
                 if (coords.0 == 1 && piece.player == Player::White) || (coords.0 == 6 && piece.player == Player::Black)  {
                     let double_push = Self::shift(Board::index_to_u64(piece.index), 16 * dir) & empty_squares;
                     moves.push(ChessMove::new(
