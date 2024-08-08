@@ -62,8 +62,9 @@ impl Board {
             ("k", PieceKind::King),
         ]);
 
-        // Chess uses rank which is literally just row, but backwards
-        let (mut row, mut col) = (7, 0);
+        // Chess uses rank which is just row, but backwards.
+        // I will use normal rows and columns where top left is (0, 0)
+        let (mut row, mut col) = (0, 0);
         let mut index: usize = 0;
 
         // PieceKind positions
@@ -71,7 +72,7 @@ impl Board {
             index += 1;
             match c {
                 '/' => {
-                    row -= 1;
+                    row += 1;
                     col = 0;
                 },
                 '1'..='8' => col += c.to_digit(10).unwrap(), // Empty squares

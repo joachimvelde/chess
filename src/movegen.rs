@@ -36,13 +36,13 @@ impl MoveGen {
 
         match board.get_turn() {
             Player::White => {
-                dir = 1;
+                dir = -1;
                 pawns = board.white[PieceKind::Pawn as usize];
                 friends = board.get_occupied(Player::White);
                 enemies = board.get_occupied(Player::Black);
             },
             Player::Black => {
-                dir = -1;
+                dir = 1;
                 pawns = board.black[PieceKind::Pawn as usize];
                 friends = board.get_occupied(Player::Black);
                 enemies = board.get_occupied(Player::White);
@@ -59,8 +59,8 @@ impl MoveGen {
                 }
 
                 if double_push != 0 &&
-                    ((board.get_turn() == Player::White && Board::index_to_row_col(i as i32).0 == 1) ||
-                     (board.get_turn() == Player::Black && Board::index_to_row_col(i as i32).0 == 6))
+                    ((board.get_turn() == Player::White && Board::index_to_row_col(i as i32).0 == 6) ||
+                     (board.get_turn() == Player::Black && Board::index_to_row_col(i as i32).0 == 1))
                 {
                     moves.push(
                         ChessMove::new(
@@ -75,12 +75,12 @@ impl MoveGen {
                 // Mask out kills that cross the board
                 match board.get_turn() {
                     Player::White => {
-                        left_kill &= !col0_mask;
-                        right_kill &= !col7_mask;
-                    },
-                    Player::Black => {
                         left_kill &= !col7_mask;
                         right_kill &= !col0_mask;
+                    },
+                    Player::Black => {
+                        left_kill &= !col0_mask;
+                        right_kill &= !col7_mask;
                     }
                 };
 
