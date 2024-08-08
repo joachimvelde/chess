@@ -107,6 +107,8 @@ impl MoveGen {
         moves
     }
 
+    // NOTE: This is really only used by the player, so generating the moves for all pieces of the
+    // same type, and then just filtering out the moves for the correct piece should be fine.
     pub fn piece_at(board: &Board, coords: (i32, i32)) -> Vec<ChessMove> {
         match board.at(coords).unwrap().kind {
             PieceKind::Pawn => {
