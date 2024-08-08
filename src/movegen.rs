@@ -30,6 +30,8 @@ impl MoveGen {
         let pawns: u64;
         let friends: u64;
         let enemies: u64;
+        let col0_mask: u64 = 0x8080808080808080;
+        let col7_mask: u64 = 0x0101010101010101;
         let mut moves: Vec<ChessMove> = Vec::new();
 
         match board.get_turn() {
@@ -68,9 +70,20 @@ impl MoveGen {
                     ));
                 }
 
-                let (left_kill, right_kill) = (shift(1u64, i as i32 + 7 * dir), shift(1u64, i as i32 + 9 * dir));
+                let (mut left_kill, mut right_kill) = (shift(1u64, i as i32 + 7 * dir), shift(1u64, i as i32 + 9 * dir));
 
-                // TODO: Make sure edge pieces cannot capture across the board
+                // Mask out kills that cross the board
+                match board.get_turn() {
+                    Player::White => {
+                        left_kill &= !col0_mask;
+                        right_kill &= !col7_mask;
+                    },
+                    Player::Black => {
+                        left_kill &= !col7_mask;
+                        right_kill &= !col0_mask;
+                    }
+                };
+
                 if left_kill & enemies != 0 {
                     moves.push(
                         ChessMove::new(
