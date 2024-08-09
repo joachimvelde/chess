@@ -9,11 +9,19 @@ use movegen::*;
 use draw::*;
 
 use raylib::prelude::*;
+use std::env;
 
 const WIDTH: i32 = 800;
 const HEIGHT: i32 = 800;
 
 fn main() {
+    // Handle command arg to turn on drawing bits
+    let mut show_bits = false;
+    let args: Vec<String> = env::args().collect();
+    if args.contains(&String::from("--d")) {
+        show_bits = true;
+    }
+
     let (mut rl, thread) = raylib::init()
         .size(WIDTH, HEIGHT)
         .title("Chess")
@@ -24,8 +32,7 @@ fn main() {
     let mut board = Board::new();
     board.reset();
 
-    // load textures
-    // NOTE: These are way too high res
+    // load textures   NOTE: These are way too high res
     let black_textures = vec![
         rl.load_texture(&thread, "media/black_pawn.png").unwrap(),
         rl.load_texture(&thread, "media/black_knight.png").unwrap(),
@@ -47,7 +54,7 @@ fn main() {
     // Main game loop
     while !rl.window_should_close() {
         update(&rl, &mut board);
-        draw(&mut rl, &thread, &board, &black_textures, &white_textures);
+        draw(&mut rl, &thread, &mut board, &black_textures, &white_textures, show_bits);
     }
 }
 

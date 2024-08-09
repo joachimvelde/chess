@@ -17,7 +17,8 @@ pub struct Board {
     pub fullmove_number: i32,
 
     // For drawing
-    selected_piece: Option<Piece>
+    selected_piece: Option<Piece>,
+    pub bits: Option<u64>
 }
 
 impl Board {
@@ -33,7 +34,8 @@ impl Board {
             en_passant_target: None,
             halfmove_clock: 0,
             fullmove_number: 0,
-            selected_piece: None
+            selected_piece: None,
+            bits: None
         }
     }
 
@@ -187,6 +189,7 @@ impl Board {
 
     pub fn deselect(&mut self) {
         self.selected_piece = None;
+        self.bits = None;
     }
 
     pub fn is_selected(&self) -> bool {
@@ -222,6 +225,10 @@ impl Board {
 
     pub fn u64_to_index(x: u64) -> i32 {
         x.trailing_zeros() as i32
+    }
+
+    pub fn u64_to_row_col(x: u64) -> (i32, i32) {
+        Self::index_to_row_col(Self::u64_to_index(x))
     }
 
     pub fn row_col_to_u64(row: i32, col: i32) -> u64 {
