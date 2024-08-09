@@ -128,10 +128,20 @@ impl MoveGen {
         moves
     }
 
+    pub fn knight(board: &mut Board, coords: (i32, i32)) -> Vec<ChessMove> {
+        let mut movemask = 1u64;
+        let (friends, enemies) = match board.get_turn() {
+            Player::White => (board.white, board.black),
+            Player::Black => (board.black, board.white)
+        };
+
+        vec![]
+    }
+
     pub fn piece_at(board: &mut Board, coords: (i32, i32)) -> Vec<ChessMove> {
         match board.at(coords).unwrap().kind {
             PieceKind::Pawn => Self::pawn(board, coords),
-            PieceKind::Knight => vec![],
+            PieceKind::Knight => Self::knight(board, coords),
             PieceKind::Bishop => vec![],
             PieceKind::Rook => vec![],
             PieceKind::Queen => vec![],
