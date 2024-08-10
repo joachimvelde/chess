@@ -265,6 +265,10 @@ impl Board {
         self.swap_turns();
     }
 
+    pub fn is_valid(&self, (x, y): (i32, i32), friends: u64) -> bool {
+        Self::in_bounds((x, y)) && Self::row_col_to_u64(x, y) & friends == 0
+    }
+
     pub fn in_bounds(coords: (i32, i32)) -> bool {
         coords.0 >= 0 && coords.0 <= 7 && coords.1 >= 0 && coords.1 <= 7
     }

@@ -1,6 +1,11 @@
 use crate::piece::{Piece, PieceKind, Player};
 use crate::board::Board;
 
+const KNIGHT_MOVES: [(i32, i32); 8] = [
+    (-2, -1), (-1, -2), (1, -2), (2, -1),
+    (-2, 1), (-1, 2), (1, 2), (2, 1)
+];
+
 #[derive(Debug)]
 pub struct ChessMove {
     pub from: i32, // The position in the bitboard
@@ -107,7 +112,8 @@ impl MoveGen {
                 ChessMove::new(
                     Board::u64_to_index(pawn),
                     Board::u64_to_index(left_kill),
-                    PieceKind::Pawn, board.get_turn()
+                    PieceKind::Pawn,
+                    board.get_turn()
                 ));
             bits |= left_kill;
         }
@@ -117,7 +123,8 @@ impl MoveGen {
                 ChessMove::new(
                     Board::u64_to_index(pawn),
                     Board::u64_to_index(right_kill),
-                    PieceKind::Pawn, board.get_turn()
+                    PieceKind::Pawn,
+                    board.get_turn()
                 ));
             bits |= right_kill;
         }
@@ -128,14 +135,44 @@ impl MoveGen {
         moves
     }
 
-    pub fn knight(board: &mut Board, coords: (i32, i32)) -> Vec<ChessMove> {
-        let mut movemask = 1u64;
-        let (friends, enemies) = match board.get_turn() {
-            Player::White => (board.white, board.black),
-            Player::Black => (board.black, board.white)
+    pub fn knight(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
+        let friends = match board.get_turn() {
+            Player::White => board.get_occupied(Player::White),
+            Player::Black => board.get_occupied(Player::Black)
         };
 
-        vec![]
+        let mut moves: Vec<ChessMove> = Vec::new();
+
+        for &(dx, dy) in &KNIGHT_MOVES {
+            let (to_x, to_y) = (x + dx, y + dy);
+            if board.is_valid((to_x, to_y), friends) {
+                moves.push(
+                    ChessMove::new(
+                        Board::row_col_to_index(x, y),
+                        Board::row_col_to_index(to_x, to_y),
+                        PieceKind::Knight,
+                        board.get_turn()
+                ));
+            }
+        }
+
+        moves
+    }
+
+    pub fn knights(board: &mut Board) -> Vec<ChessMove> {
+        let mut moves: Vec<ChessMove> = Vec::new();
+        let knights = match board.get_turn() {
+            Player::White => board.white[PieceKind::Knight as usize],
+            Player::Black => board.black[PieceKind::Knight as usize]
+        };
+        
+        for i in 0..u64::BITS {
+            if (knights >> i) & 0b1 != 0 {
+                moves.extend(Self::knight(board, Board::index_to_row_col(i as i32)));
+            }
+        }
+
+        moves
     }
 
     pub fn piece_at(board: &mut Board, coords: (i32, i32)) -> Vec<ChessMove> {
