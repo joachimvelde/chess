@@ -1,6 +1,11 @@
 use crate::piece::{Piece, PieceKind, Player};
 use crate::board::Board;
 
+/*
+ * Some of the functions in this file have the same structure, where the only diffierence is the
+ * dirs-variable and piece kind. Consider creating a function that handles this.
+ * */
+
 const KNIGHT_MOVES: [(i32, i32); 8] = [
     (-2, -1), (-1, -2), (1, -2), (2, -1),
     (-2, 1), (-1, 2), (1, 2), (2, 1)
@@ -221,8 +226,8 @@ impl MoveGen {
     pub fn bishops(board: &mut Board) -> Vec<ChessMove> {
         let mut moves: Vec<ChessMove> = Vec::new();
         let knights = match board.get_turn() {
-            Player::White => board.white[PieceKind::Pawn as usize],
-            Player::Black => board.black[PieceKind::Pawn as usize]
+            Player::White => board.white[PieceKind::Bishop as usize],
+            Player::Black => board.black[PieceKind::Bishop as usize]
         };
         
         for i in 0..u64::BITS {
@@ -234,13 +239,116 @@ impl MoveGen {
         moves
     }
 
+    pub fn rook(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
+        let dirs = [(0, -1), (0, 1), (-1, 0), (1, 0)];
+        let friends = board.get_occupied(board.get_turn());
+        let mut moves: Vec<ChessMove> = Vec::new();
+
+        for (dx, dy) in dirs {
+            let (mut to_x, mut to_y) = (x, y);
+            loop {
+                to_x += dx;
+                to_y += dy;
+
+                if !Board::in_bounds((to_x, to_y)) {
+                    break;
+                }
+
+                if !board.is_occupied((to_x, to_y)) {
+                    moves.push(
+                        ChessMove::new(
+                            Board::row_col_to_index(x, y),
+                            Board::row_col_to_index(to_x, to_y),
+                            PieceKind::Rook,
+                            board.get_turn()
+                    ));
+                } else {
+                    if Board::row_col_to_u64(to_x, to_y) & friends == 0 {
+                        moves.push(
+                            ChessMove::new(
+                                Board::row_col_to_index(x, y),
+                                Board::row_col_to_index(to_x, to_y),
+                                PieceKind::Rook,
+                                board.get_turn()
+                        ));
+                        break;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+        moves
+    }
+
+    pub fn rooks(board: &mut Board) -> Vec<ChessMove> {
+        let mut moves: Vec<ChessMove> = Vec::new();
+        let rooks = match board.get_turn() {
+            Player::White => board.white[PieceKind::Rook as usize],
+            Player::Black => board.black[PieceKind::Rook as usize]
+        };
+        
+        for i in 0..u64::BITS {
+            if (rooks >> i) & 0b1 != 0 {
+                moves.extend(Self::rook(board, Board::index_to_row_col(i as i32)));
+            }
+        }
+
+        moves
+    }
+
+    pub fn queen(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
+        let dirs = [(0, -1), (0, 1), (-1, 0), (1, 0),
+                    (-1, -1), (-1, 1), (1, -1), (1, 1)];
+        let friends = board.get_occupied(board.get_turn());
+        let mut moves: Vec<ChessMove> = Vec::new();
+
+        for (dx, dy) in dirs {
+            let (mut to_x, mut to_y) = (x, y);
+            loop {
+                to_x += dx;
+                to_y += dy;
+
+                if !Board::in_bounds((to_x, to_y)) {
+                    break;
+                }
+
+                if !board.is_occupied((to_x, to_y)) {
+                    moves.push(
+                        ChessMove::new(
+                            Board::row_col_to_index(x, y),
+                            Board::row_col_to_index(to_x, to_y),
+                            PieceKind::Queen,
+                            board.get_turn()
+                    ));
+                } else {
+                    if Board::row_col_to_u64(to_x, to_y) & friends == 0 {
+                        moves.push(
+                            ChessMove::new(
+                                Board::row_col_to_index(x, y),
+                                Board::row_col_to_index(to_x, to_y),
+                                PieceKind::Queen,
+                                board.get_turn()
+                        ));
+                        break;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+        moves
+    }
+
     pub fn piece_at(board: &mut Board, coords: (i32, i32)) -> Vec<ChessMove> {
         match board.at(coords).unwrap().kind {
             PieceKind::Pawn => Self::pawn(board, coords),
             PieceKind::Knight => Self::knight(board, coords),
             PieceKind::Bishop => Self::bishop(board, coords),
-            PieceKind::Rook => vec![],
-            PieceKind::Queen => vec![],
+            PieceKind::Rook => Self::rook(board, coords),
+            PieceKind::Queen => Self::queen(board, coords),
             PieceKind::King => vec![]
         }
     }
