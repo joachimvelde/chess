@@ -11,6 +11,12 @@ const KNIGHT_MOVES: [(i32, i32); 8] = [
     (-2, 1), (-1, 2), (1, 2), (2, 1)
 ];
 
+const KING_MOVES: [(i32, i32); 8] = [
+    (-1, -1), (-1, 0), (1, 1),
+    (0, -1), (0, 1),
+    (1, -1), (1, 0), (1, 1)
+];
+
 #[derive(Debug)]
 pub struct ChessMove {
     pub from: i32, // The position in the bitboard
@@ -141,10 +147,7 @@ impl MoveGen {
     }
 
     pub fn knight(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
-        let friends = match board.get_turn() {
-            Player::White => board.get_occupied(Player::White),
-            Player::Black => board.get_occupied(Player::Black)
-        };
+        let friends = board.get_occupied(board.get_turn());
 
         let mut moves: Vec<ChessMove> = Vec::new();
 
@@ -342,6 +345,28 @@ impl MoveGen {
         moves
     }
 
+    // The same to knight - could combine into new function, perhaps
+    pub fn king(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
+        let friends = board.get_occupied(board.get_turn());
+
+        let mut moves: Vec<ChessMove> = Vec::new();
+
+        for &(dx, dy) in &KING_MOVES {
+            let (to_x, to_y) = (x + dx, y + dy);
+            if board.is_valid((to_x, to_y), friends) {
+                moves.push(
+                    ChessMove::new(
+                        Board::row_col_to_index(x, y),
+                        Board::row_col_to_index(to_x, to_y),
+                        PieceKind::King,
+                        board.get_turn()
+                ));
+            }
+        }
+
+        moves
+    }
+
     pub fn piece_at(board: &mut Board, coords: (i32, i32)) -> Vec<ChessMove> {
         match board.at(coords).unwrap().kind {
             PieceKind::Pawn => Self::pawn(board, coords),
@@ -349,7 +374,7 @@ impl MoveGen {
             PieceKind::Bishop => Self::bishop(board, coords),
             PieceKind::Rook => Self::rook(board, coords),
             PieceKind::Queen => Self::queen(board, coords),
-            PieceKind::King => vec![]
+            PieceKind::King => Self::king(board, coords)
         }
     }
 }
