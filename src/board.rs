@@ -53,6 +53,7 @@ impl Board {
         self.black = [0; N_PIECES];
         self.white = [0; N_PIECES];
         self.deselect();
+        self.promoting = false;
         self.apply_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
     }
 

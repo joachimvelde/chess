@@ -89,18 +89,22 @@ fn draw_promotion_ui(d: &mut RaylibDrawHandle, board: &mut Board, black_textures
     let rect = Rectangle::new(x as f32, y as f32, width as f32, height as f32);
     d.draw_rectangle_lines_ex(rect, 7.5, Color::BLACK);
 
+    let mut i = 0;
     for &piece in PieceKind::iterator() {
         let texture = match board.get_turn() {
-            Player::White => white_textures.get(piece as usize).unwrap(),
+            // NOTE: These are opposite because apply_move() calls swap_turns()
+            Player::White => black_textures.get(piece as usize).unwrap(),
             Player::Black => white_textures.get(piece as usize).unwrap()
         };
         
         d.draw_texture_ex(
-            white_textures.get(*piece as usize).unwrap(),
-            Vector2::new(col as f32 * tile_dim, row as f32 * tile_dim),
+            texture,
+            Vector2::new((x + height * i) as f32, y as f32),
             0.00, // Rotation
             0.053,  // Scale
             Color::WHITE);
+
+        i += 1;
     }
 }
 
