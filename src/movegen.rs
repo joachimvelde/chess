@@ -17,7 +17,7 @@ const KING_MOVES: [(i32, i32); 8] = [
     (1, -1), (1, 0), (1, 1)
 ];
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct ChessMove {
     pub from: i32, // The position in the bitboard
     pub to: i32,
@@ -36,115 +36,228 @@ pub struct MoveGen {
 }
 
 impl MoveGen {
-    pub fn all(board: &Board) -> Vec<ChessMove> {
-        todo!()
+    pub fn all(board: &mut Board) -> Vec<ChessMove> {
+        let (queen, king): (u64, u64) = match board.get_turn() {
+            Player::White => (board.white[PieceKind::Queen as usize], board.white[PieceKind::King as usize]),
+            Player::Black => (board.black[PieceKind::Queen as usize], board.black[PieceKind::King as usize]),
+        };
+
+        let mut moves: Vec<ChessMove> = Vec::new();
+        moves.extend(Self::pawns(board));
+        moves.extend(Self::knights(board));
+        moves.extend(Self::bishops(board));
+        moves.extend(Self::rooks(board));
+        moves.extend(Self::queen(board, Board::u64_to_row_col(queen)));
+        moves.extend(Self::king(board, Board::u64_to_row_col(king)));
+
+        moves
+    }
+
+    pub fn pawn(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
+        let friends = board.get_occupied(board.get_turn());
+
+        let mut moves: Vec<ChessMove> = Vec::new();
+
+        match board.get_turn() {
+            Player::White => {
+                // Straight single tile moves
+                if !board.is_occupied((x - 1, y)) {
+                    moves.push(
+                        ChessMove::new(
+                            Board::row_col_to_index(x, y),
+                            Board::row_col_to_index(x - 1, y),
+                            PieceKind::Pawn,
+                            board.get_turn()
+                    ));
+                   
+                    // Straight doulbe tile moves
+                    if x == 6 && !board.is_occupied((x - 2, y)) {
+                        moves.push(
+                            ChessMove::new(
+                                Board::row_col_to_index(x, y),
+                                Board::row_col_to_index(x - 2, y),
+                                PieceKind::Pawn,
+                                board.get_turn()
+                            ));
+                    }
+                }
+
+                // Murders
+                for &(to_x, to_y) in &[(x - 1, y - 1), (x - 1, y + 1)] {
+                    if board.is_valid((to_x, to_y), friends) && board.is_occupied((to_x, to_y)) {
+                        moves.push(
+                            ChessMove::new(
+                                Board::row_col_to_index(x, y),
+                                Board::row_col_to_index(to_x, to_y),
+                                PieceKind::Pawn,
+                                board.get_turn()
+                        ));
+                    }
+                }
+            },
+            Player::Black => {
+                // Straight single tile moves
+                if !board.is_occupied((x + 1, y)) {
+                    moves.push(
+                        ChessMove::new(
+                            Board::row_col_to_index(x, y),
+                            Board::row_col_to_index(x + 1, y),
+                            PieceKind::Pawn,
+                            board.get_turn()
+                    ));
+                   
+                    // Straight doulbe tile moves
+                    if x == 1 && !board.is_occupied((x + 2, y)) {
+                        moves.push(
+                            ChessMove::new(
+                                Board::row_col_to_index(x, y),
+                                Board::row_col_to_index(x + 2, y),
+                                PieceKind::Pawn,
+                                board.get_turn()
+                            ));
+                    }
+                }
+
+                // Murders
+                for &(to_x, to_y) in &[(x + 1, y - 1), (x + 1, y + 1)] {
+                    if board.is_valid((to_x, to_y), friends) && board.is_occupied((to_x, to_y)) {
+                        moves.push(
+                            ChessMove::new(
+                                Board::row_col_to_index(x, y),
+                                Board::row_col_to_index(to_x, to_y),
+                                PieceKind::Pawn,
+                                board.get_turn()
+                        ));
+                    }
+                }
+            }
+        }
+
+        moves
     }
 
     pub fn pawns(board: &mut Board) -> Vec<ChessMove> {
-        let pawns: u64 = match board.get_turn() {
+        let mut moves: Vec<ChessMove> = Vec::new();
+        let pawns = match board.get_turn() {
             Player::White => board.white[PieceKind::Pawn as usize],
-            Player::Black => board.black[PieceKind::Pawn as usize],
+            Player::Black => board.black[PieceKind::Pawn as usize]
         };
-
-        let mut moves: Vec<ChessMove> = Vec::new();
-
+        
         for i in 0..u64::BITS {
-            if (pawns >> i) != 0 {
-                moves.extend(Self::pawn(board, Board::u64_to_row_col(pawns >> i)));
+            if (pawns >> i) & 0b1 != 0 {
+                moves.extend(Self::pawn(board, Board::index_to_row_col(i as i32)));
             }
         }
 
         moves
     }
 
-    // We need to process single pawn to be able to draw their individual bitmasks
-    pub fn pawn(board: &mut Board, coords: (i32, i32)) -> Vec<ChessMove> {
-        let mut bits = 0u64; // Only used for drawing
+    // pub fn pawns(board: &mut Board) -> Vec<ChessMove> {
+    //     let pawns: u64 = match board.get_turn() {
+    //         Player::White => board.white[PieceKind::Pawn as usize],
+    //         Player::Black => board.black[PieceKind::Pawn as usize],
+    //     };
 
-        let dir: i32;
-        let pawn: u64 = Board::row_col_to_u64(coords.0, coords.1);
-        let friends: u64;
-        let enemies: u64;
-        let col0_mask: u64 = 0x8080808080808080;
-        let col7_mask: u64 = 0x0101010101010101;
-        let mut moves: Vec<ChessMove> = Vec::new();
+    //     let mut moves: Vec<ChessMove> = Vec::new();
 
-        match board.get_turn() {
-            Player::White => {
-                dir = -1;
-                friends = board.get_occupied(Player::White);
-                enemies = board.get_occupied(Player::Black);
-            },
-            Player::Black => {
-                dir = 1;
-                friends = board.get_occupied(Player::Black);
-                enemies = board.get_occupied(Player::White);
-            }
-        }
+    //     for i in 0..u64::BITS {
+    //         if (pawns >> i) != 0 {
+    //             moves.extend(Self::pawn(board, Board::u64_to_row_col(pawns >> i)));
+    //         }
+    //     }
 
-        let single_push: u64 = shift(pawn, dir * 8) & !friends & !enemies;
-        let double_push: u64 = shift(single_push, dir * 8) & !friends & !enemies;
+    //     moves
+    // }
 
-        if single_push != 0 {
-            moves.push(ChessMove::new(Board::u64_to_index(pawn), Board::u64_to_index(single_push), PieceKind::Pawn, board.get_turn()));
-            bits |= single_push;
-        }
+    // // TODO: Check if this handles pawns with no moves well
+    // // We need to process single pawn to be able to draw their individual bitmasks
+    // pub fn pawn(board: &mut Board, coords: (i32, i32)) -> Vec<ChessMove> {
+    //     let mut bits = 0u64; // Only used for drawing
 
-        if double_push != 0 &&
-            ((board.get_turn() == Player::White && pawn & 0x00ff000000000000 != 0) || // Seventh row
-             (board.get_turn() == Player::Black && pawn & 0x000000000000ff00 != 0))   // Second row
-        {
-            moves.push(
-                ChessMove::new(
-                    Board::u64_to_index(pawn),
-                    Board::u64_to_index(double_push),
-                    PieceKind::Pawn, board.get_turn()
-                ));
-            bits |= double_push;
-        }
+    //     let dir: i32;
+    //     let pawn: u64 = Board::row_col_to_u64(coords.0, coords.1);
+    //     let friends: u64;
+    //     let enemies: u64;
+    //     let col0_mask: u64 = 0x8080808080808080;
+    //     let col7_mask: u64 = 0x0101010101010101;
+    //     let mut moves: Vec<ChessMove> = Vec::new();
 
-        // Kills
-        let (mut left_kill, mut right_kill) = (shift(pawn, 7 * dir), shift(pawn, 9 * dir));
+    //     match board.get_turn() {
+    //         Player::White => {
+    //             dir = -1;
+    //             friends = board.get_occupied(Player::White);
+    //             enemies = board.get_occupied(Player::Black);
+    //         },
+    //         Player::Black => {
+    //             dir = 1;
+    //             friends = board.get_occupied(Player::Black);
+    //             enemies = board.get_occupied(Player::White);
+    //         }
+    //     }
 
-        // Mask out kills that cross the board
-        match board.get_turn() {
-            Player::White => {
-                left_kill &= !col7_mask;
-                right_kill &= !col0_mask;
-            },
-            Player::Black => {
-                left_kill &= !col0_mask;
-                right_kill &= !col7_mask;
-            }
-        };
+    //     let single_push: u64 = shift(pawn, dir * 8) & !friends & !enemies;
+    //     let double_push: u64 = shift(single_push, dir * 8) & !friends & !enemies;
 
-        if left_kill & enemies != 0 {
-            moves.push(
-                ChessMove::new(
-                    Board::u64_to_index(pawn),
-                    Board::u64_to_index(left_kill),
-                    PieceKind::Pawn,
-                    board.get_turn()
-                ));
-            bits |= left_kill;
-        }
+    //     if single_push != 0 {
+    //         moves.push(ChessMove::new(Board::u64_to_index(pawn), Board::u64_to_index(single_push), PieceKind::Pawn, board.get_turn()));
+    //         bits |= single_push;
+    //     }
 
-        if right_kill & enemies != 0 {
-            moves.push(
-                ChessMove::new(
-                    Board::u64_to_index(pawn),
-                    Board::u64_to_index(right_kill),
-                    PieceKind::Pawn,
-                    board.get_turn()
-                ));
-            bits |= right_kill;
-        }
+    //     if double_push != 0 &&
+    //         ((board.get_turn() == Player::White && pawn & 0x00ff000000000000 != 0) || // Seventh row
+    //          (board.get_turn() == Player::Black && pawn & 0x000000000000ff00 != 0))   // Second row
+    //     {
+    //         moves.push(
+    //             ChessMove::new(
+    //                 Board::u64_to_index(pawn),
+    //                 Board::u64_to_index(double_push),
+    //                 PieceKind::Pawn, board.get_turn()
+    //             ));
+    //         bits |= double_push;
+    //     }
 
-        // Draw the bits
-        board.bits = Some(bits);
+    //     // Kills
+    //     let (mut left_kill, mut right_kill) = (shift(pawn, 7 * dir), shift(pawn, 9 * dir));
 
-        moves
-    }
+    //     // Mask out kills that cross the board
+    //     match board.get_turn() {
+    //         Player::White => {
+    //             left_kill &= !col7_mask;
+    //             right_kill &= !col0_mask;
+    //         },
+    //         Player::Black => {
+    //             left_kill &= !col0_mask;
+    //             right_kill &= !col7_mask;
+    //         }
+    //     };
+
+    //     if left_kill & enemies != 0 {
+    //         moves.push(
+    //             ChessMove::new(
+    //                 Board::u64_to_index(pawn),
+    //                 Board::u64_to_index(left_kill),
+    //                 PieceKind::Pawn,
+    //                 board.get_turn()
+    //             ));
+    //         bits |= left_kill;
+    //     }
+
+    //     if right_kill & enemies != 0 {
+    //         moves.push(
+    //             ChessMove::new(
+    //                 Board::u64_to_index(pawn),
+    //                 Board::u64_to_index(right_kill),
+    //                 PieceKind::Pawn,
+    //                 board.get_turn()
+    //             ));
+    //         bits |= right_kill;
+    //     }
+
+    //     // Draw the bits
+    //     board.bits = Some(bits);
+
+    //     moves
+    // }
 
     pub fn knight(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
         let friends = board.get_occupied(board.get_turn());

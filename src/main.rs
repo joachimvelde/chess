@@ -63,19 +63,25 @@ fn update(rl: &RaylibHandle, board: &mut Board) {
         board.reset();
     }
 
+    // Auto-play
     if rl.is_mouse_button_pressed(raylib::consts::MouseButton::MOUSE_BUTTON_LEFT) {
-        let (row, col) = ((rl.get_mouse_y() as f32 / 100.0).floor() as i32, (rl.get_mouse_x() as f32 / 100.0).floor() as i32);
-
-        let piece = board.at((row, col));
-        if piece.is_some() && piece.unwrap().player == board.get_turn() {
-            board.select((row, col));
-        } else if board.is_selected() {
-            for m in MoveGen::piece_at(board, Board::index_to_row_col(board.get_selected().index)) {
-                if m.to == Board::row_col_to_index(row, col) {
-                    board.apply_move(m);
-                }
-            }
-            board.deselect();
-        }
+        let moves = MoveGen::all(board);
+        board.apply_move(moves[0]);
     }
+
+    // if rl.is_mouse_button_pressed(raylib::consts::MouseButton::MOUSE_BUTTON_LEFT) {
+    //     let (row, col) = ((rl.get_mouse_y() as f32 / 100.0).floor() as i32, (rl.get_mouse_x() as f32 / 100.0).floor() as i32);
+
+    //     let piece = board.at((row, col));
+    //     if piece.is_some() && piece.unwrap().player == board.get_turn() {
+    //         board.select((row, col));
+    //     } else if board.is_selected() {
+    //         for m in MoveGen::piece_at(board, Board::index_to_row_col(board.get_selected().index)) {
+    //             if m.to == Board::row_col_to_index(row, col) {
+    //                 board.apply_move(m);
+    //             }
+    //         }
+    //         board.deselect();
+    //     }
+    // }
 }

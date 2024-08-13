@@ -247,6 +247,9 @@ impl Board {
     }
 
     pub fn apply_move(&mut self, m: ChessMove) {
+        // Debugging
+        // println!("From {:?}, to {:?}", Board::index_to_row_col(m.from), Board::index_to_row_col(m.to));
+
         // Handle kills
         let victim = self.at(Self::index_to_row_col(m.to));
         if victim.is_some() {
@@ -275,7 +278,7 @@ impl Board {
 
     pub fn is_occupied(&self, coords: (i32, i32)) -> bool {
         if !Self::in_bounds(coords) {
-            return false;
+            return true;
         }
 
         let bits = Board::row_col_to_u64(coords.0, coords.1);
