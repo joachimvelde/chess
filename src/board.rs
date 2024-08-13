@@ -18,7 +18,8 @@ pub struct Board {
 
     // For drawing
     selected_piece: Option<Piece>,
-    pub bits: Option<u64>
+    pub bits: Option<u64>,
+    pub promoting: bool
 }
 
 impl Board {
@@ -35,7 +36,8 @@ impl Board {
             halfmove_clock: 0,
             fullmove_number: 0,
             selected_piece: None,
-            bits: None
+            bits: None,
+            promoting: false
         }
     }
 
@@ -247,9 +249,6 @@ impl Board {
     }
 
     pub fn apply_move(&mut self, m: ChessMove) {
-        // Debugging
-        // println!("From {:?}, to {:?}", Board::index_to_row_col(m.from), Board::index_to_row_col(m.to));
-
         // Handle kills
         let victim = self.at(Self::index_to_row_col(m.to));
         if victim.is_some() {
@@ -263,6 +262,12 @@ impl Board {
         match m.player {
             Player::White => self.white[m.kind as usize] ^= 1_u64 << m.from | 1_u64 << m.to,
             Player::Black => self.black[m.kind as usize] ^= 1_u64 << m.from | 1_u64 << m.to
+        }
+
+        match (m.player, m.kind, Board::index_to_row_col(m.to).0) {
+            (Player::White, PieceKind::Pawn, 0) => self.promoting = true,
+            (Player::Black, PieceKind::Pawn, 7) => self.promoting = true,
+            _  => ()
         }
 
         self.swap_turns();
