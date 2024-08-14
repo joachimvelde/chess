@@ -54,12 +54,13 @@ fn main() {
 
     // Main game loop
     while !rl.window_should_close() {
-        update(&rl, &mut board);
-        draw(&mut rl, &thread, &mut board, &black_textures, &white_textures, show_bits);
+        let mouse = rl.get_mouse_position();
+        update(&rl, &mut board, mouse);
+        draw(&mut rl, &thread, &mut board, mouse, &black_textures, &white_textures, show_bits);
     }
 }
 
-fn update(rl: &RaylibHandle, board: &mut Board) {
+fn update(rl: &RaylibHandle, board: &mut Board, mouse: Vector2) {
     if rl.is_mouse_button_pressed(raylib::consts::MouseButton::MOUSE_BUTTON_MIDDLE) {
         board.reset();
     }
@@ -72,7 +73,7 @@ fn update(rl: &RaylibHandle, board: &mut Board) {
     // }
 
     if rl.is_mouse_button_pressed(raylib::consts::MouseButton::MOUSE_BUTTON_LEFT) {
-        let (row, col) = ((rl.get_mouse_y() as f32 / 100.0).floor() as i32, (rl.get_mouse_x() as f32 / 100.0).floor() as i32);
+        let (row, col) = ((mouse.y as f32 / 100.0).floor() as i32, (mouse.x as f32 / 100.0).floor() as i32);
 
         if board.promoting {
 
