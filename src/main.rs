@@ -31,7 +31,7 @@ fn main() {
     // Create the board
     let mut board = Board::new();
     // board.reset();
-    board.apply_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
+    board.apply_fen("rnbqkbnr/PPPPPPPP/8/8/8/8/pppppppp/RNBQKBNR w KQkq - 0 1".to_string());
 
     // load textures   NOTE: These are way too high res
     let black_textures = vec![
@@ -75,20 +75,29 @@ fn update(rl: &RaylibHandle, board: &mut Board, mouse: Vector2) {
     if rl.is_mouse_button_pressed(raylib::consts::MouseButton::MOUSE_BUTTON_LEFT) {
         let (row, col) = ((mouse.y as f32 / 100.0).floor() as i32, (mouse.x as f32 / 100.0).floor() as i32);
 
+        // Promotions
         if board.promoting.is_some() {
-            let width = WIDTH / 8 * (N_PIECES as i32 - 1);
+            let width = WIDTH / 8 * (N_PIECES as i32 - 2);
+            let tile_dim = HEIGHT / 8;
             let x = WIDTH / 2 - width / 2;
-            let piece_num = ((mouse.x - x as f32) / 100.0) as i32;
+            let y = HEIGHT / 2 - tile_dim / 2;
+            let piece_num = ((mouse.x - x as f32) / 100.0) as i32 + 1;
+            let rect = Rectangle::new(x as f32, y as f32, width as f32, WIDTH as f32 / 8.0);
 
-            let mut i = -1;
-            for &piece in PieceKind::iterator() {
-                if piece_num == i {
-                    board.promote_to(piece);
-                    break;
+            // This is extremely stupid
+            if check_collision_point_rec(mouse, rect) {
+                let mut i = 0;
+                for &piece in PieceKind::iterator() {
+                    if piece_num == i {
+                        board.promote_to(piece);
+                        break;
+                    }
+                    i += 1
                 }
-                i += 1
             }
-        } else {
+        }
+        // Normal play
+        else {
             let piece = board.at((row, col));
             if piece.is_some() && piece.unwrap().player == board.get_turn() {
                 board.select((row, col));
