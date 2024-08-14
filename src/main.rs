@@ -75,8 +75,19 @@ fn update(rl: &RaylibHandle, board: &mut Board, mouse: Vector2) {
     if rl.is_mouse_button_pressed(raylib::consts::MouseButton::MOUSE_BUTTON_LEFT) {
         let (row, col) = ((mouse.y as f32 / 100.0).floor() as i32, (mouse.x as f32 / 100.0).floor() as i32);
 
-        if board.promoting {
+        if board.promoting.is_some() {
+            let width = WIDTH / 8 * (N_PIECES as i32 - 1);
+            let x = WIDTH / 2 - width / 2;
+            let piece_num = ((mouse.x - x as f32) / 100.0) as i32;
 
+            let mut i = -1;
+            for &piece in PieceKind::iterator() {
+                if piece_num == i {
+                    board.promote_to(piece);
+                    break;
+                }
+                i += 1
+            }
         } else {
             let piece = board.at((row, col));
             if piece.is_some() && piece.unwrap().player == board.get_turn() {

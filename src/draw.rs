@@ -84,7 +84,7 @@ fn draw_bits(d: &mut RaylibDrawHandle, board: &Board) {
 }
 
 fn draw_promotion_ui(d: &mut RaylibDrawHandle, board: &mut Board, mouse: Vector2,black_textures: &Vec<Texture2D>, white_textures: &Vec<Texture2D>) {
-    let width = WIDTH / 8 * N_PIECES as i32;
+    let width = WIDTH / 8 * (N_PIECES as i32 - 1);
     let tile_dim = HEIGHT / 8;
     let x = WIDTH / 2 - width / 2;
     let y = HEIGHT / 2 - tile_dim / 2;
@@ -95,9 +95,12 @@ fn draw_promotion_ui(d: &mut RaylibDrawHandle, board: &mut Board, mouse: Vector2
     let rect = Rectangle::new(x as f32 - margin, y as f32 - margin, width as f32 + margin * 2.0, tile_dim as f32 + margin * 2.0);
     d.draw_rectangle_lines_ex(rect, margin, Color::BLACK);
 
-    //  TODO: Technically you cannot "promote" a pawn to a pawn, but whatever. Fix later
     let mut i = 0;
     for &piece in PieceKind::iterator() {
+        if piece == PieceKind::Pawn {
+            continue;
+        }
+
         // Mouse hover effect
         let piece_rect = Rectangle::new(
             (x + tile_dim * i) as f32,
@@ -134,7 +137,7 @@ pub fn draw(rl: &mut RaylibHandle, thread: &RaylibThread, board: &mut Board, mou
     if show_bits {
         draw_bits(&mut d, board);
     }
-    if board.promoting {
+    if board.promoting.is_some() {
         draw_promotion_ui(&mut d, board, mouse, black_textures, white_textures);
     }
 }

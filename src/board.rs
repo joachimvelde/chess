@@ -19,7 +19,7 @@ pub struct Board {
     // For drawing
     selected_piece: Option<Piece>,
     pub bits: Option<u64>,
-    pub promoting: bool
+    pub promoting: Option<u64>
 }
 
 impl Board {
@@ -37,7 +37,7 @@ impl Board {
             fullmove_number: 0,
             selected_piece: None,
             bits: None,
-            promoting: false
+            promoting: None
         }
     }
 
@@ -53,7 +53,7 @@ impl Board {
         self.black = [0; N_PIECES];
         self.white = [0; N_PIECES];
         self.deselect();
-        self.promoting = false;
+        self.promoting = None;
         self.apply_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
     }
 
@@ -204,6 +204,25 @@ impl Board {
         return self.selected_piece.unwrap();
     }
 
+    pub fn promote_to(&mut self, kind: PieceKind) {
+        assert!(self.promoting.is_some());
+
+        let piece = self.at(Self::u64_to_row_col(self.promoting.unwrap())).unwrap();
+
+        match piece.player {
+            Player::White => {
+                self.white[kind as usize] |= self.promoting.unwrap();
+                self.white[PieceKind::Pawn as usize] &= !self.promoting.unwrap();
+            },
+            Player::Black => {
+                self.black[kind as usize] |= self.promoting.unwrap();
+                self.black[PieceKind::Pawn as usize] &= !self.promoting.unwrap();
+            }
+        }
+
+        self.promoting = None;
+    }
+
     pub fn index_to_row_col(pos: i32) -> (i32, i32) {
         return (pos / 8, pos % 8);
     }
@@ -265,9 +284,9 @@ impl Board {
             Player::Black => self.black[m.kind as usize] ^= 1_u64 << m.from | 1_u64 << m.to
         }
 
+        // Promotions
         match (m.player, m.kind, Board::index_to_row_col(m.to).0) {
-            (Player::White, PieceKind::Pawn, 0) => self.promoting = true,
-            (Player::Black, PieceKind::Pawn, 7) => self.promoting = true,
+            (Player::White, PieceKind::Pawn, 0) | (Player::Black, PieceKind::Pawn, 7) => self.promoting = Some(Board::index_to_u64(m.to)),
             _  => ()
         }
 
