@@ -140,6 +140,10 @@ impl Board {
         self.fullmove_number = fen[index..end].parse().unwrap_or(0);
     }
 
+    pub fn is_game_over(&self) -> bool {
+        self.white[PieceKind::King as usize] == 0 || self.black[PieceKind::King as usize] == 0
+    }
+
     pub fn at(&self, coords: (i32, i32)) -> Option<Piece> {
         let bit = Board::row_col_to_u64(coords.0, coords.1);
 
