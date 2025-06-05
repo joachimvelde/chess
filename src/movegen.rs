@@ -351,6 +351,7 @@ impl MoveGen {
         moves
     }
 
+    // BUG: King can't kill top right btw
     // The same to knight - could combine into new function, perhaps
     pub fn king(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
         let friends = board.get_occupied(board.get_turn());
