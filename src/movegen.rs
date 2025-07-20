@@ -12,7 +12,7 @@ const KNIGHT_MOVES: [(i32, i32); 8] = [
 ];
 
 const KING_MOVES: [(i32, i32); 8] = [
-    (-1, -1), (-1, 0), (1, 1),
+    (-1, -1), (-1, 0), (-1, 1),
     (0, -1), (0, 1),
     (1, -1), (1, 0), (1, 1)
 ];
@@ -351,8 +351,6 @@ impl MoveGen {
         moves
     }
 
-    // BUG: King can't kill top right btw
-    // The same to knight - could combine into new function, perhaps
     pub fn king(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
         let friends = board.get_occupied(board.get_turn());
 
