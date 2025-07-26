@@ -248,6 +248,17 @@ impl MoveGen {
         moves
     }
 
+    /*
+     * ----- RULES FOR CASTLING -----
+     * 1. King nor rook cannot have previously moved
+     * 2. There are no pieces between the king and the rook
+     * 3. The king is not in check
+     * 4. The king does not pass through or finish on a square that is attacked by an enemy piece
+    */
+    fn castling(board: &mut Board, (x, y): (i32, i32)) -> ChessMove {
+        todo!()
+    }
+
     pub fn rook(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
         let dirs = [(0, -1), (0, 1), (-1, 0), (1, 0)];
         let friends = board.get_occupied(board.get_turn());
@@ -307,6 +318,7 @@ impl MoveGen {
         moves
     }
 
+    // NOTE: Why do we have the x and y parameters?
     pub fn queen(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
         let dirs = [(0, -1), (0, 1), (-1, 0), (1, 0),
                     (-1, -1), (-1, 1), (1, -1), (1, 1)];
