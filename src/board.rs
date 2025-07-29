@@ -1,5 +1,5 @@
 use crate::piece::{Piece, PieceKind, N_PIECES, Player};
-use crate::movegen::ChessMove;
+use crate::movegen::{ChessMove, MoveGen};
 use std::collections::HashMap;
 use std::fmt;
 
@@ -8,7 +8,7 @@ pub struct Board {
     pub black: [u64; N_PIECES],
     pub white: [u64; N_PIECES],
     turn: Player,
-    pub white_castling_k: bool,
+    pub white_castling_k: bool, // Castling rights
     pub white_castling_q: bool,
     pub black_castling_k: bool,
     pub black_castling_q: bool,
@@ -227,6 +227,13 @@ impl Board {
         self.promoting = None;
     }
 
+    pub fn opponent(player: Player) -> Player {
+        match player {
+            Player::White => Player::Black,
+            Player::Black => Player::White,
+        }
+    }
+
     pub fn index_to_row_col(pos: i32) -> (i32, i32) {
         return (pos / 8, pos % 8);
     }
@@ -294,6 +301,46 @@ impl Board {
             _  => ()
         }
 
+        // Castling rights
+        match (m.kind, m.player) {
+            (PieceKind::King, Player::White) => {
+                self.white_castling_k = false;
+                self.white_castling_q = false;
+            },
+            (PieceKind::Rook, Player::White) => {
+                match Self::index_to_row_col(m.from) {
+                    (7, 0) => self.white_castling_q = false,
+                    (7, 7)=> self.white_castling_k = false,
+                    _ => (),
+                }
+            }
+            (PieceKind::King, Player::Black) => {
+                self.black_castling_k = false;
+                self.black_castling_q = false;
+            },
+            (PieceKind::Rook, Player::Black) => {
+                match Self::index_to_row_col(m.from) {
+                    (0, 0) => self.black_castling_q = false,
+                    (0, 7)=> self.black_castling_k = false,
+                    _ => (),
+                }
+            },
+            _ => (),
+        }
+
+        // Cannot castle without a rook
+        if let Some(victim) = self.at(Self::index_to_row_col(m.to)) {
+            if victim.kind == PieceKind::Rook {
+                match (victim.player, Self::index_to_row_col(m.to)) {
+                    (Player::White, (7, 0)) => self.white_castling_q = false,
+                    (Player::White, (7, 7)) => self.white_castling_k = false,
+                    (Player::Black, (0, 0)) => self.black_castling_q = false,
+                    (Player::Black, (0, 7)) => self.black_castling_k = false,
+                    _ => (),
+                }
+            }
+        }
+
         self.swap_turns();
     }
 
@@ -318,6 +365,84 @@ impl Board {
         }
 
         return false;
+    }
+    
+    // Right side
+    pub fn can_castle_kingside(&mut self) -> bool {
+        let player = self.get_turn();
+        match player {
+            Player::White => {
+                self.white_castling_k &&
+                    self.is_path_clear_castling(player, true) &&
+                    !self.is_king_in_check(player) &&
+                    !self.is_square_attacked_by((7, 5), Self::opponent(player)) &&
+                    !self.is_square_attacked_by((7, 6), Self::opponent(player))
+
+            },
+            Player::Black => {
+                self.black_castling_k &&
+                    self.is_path_clear_castling(player, true) &&
+                    !self.is_king_in_check(player) &&
+                    !self.is_square_attacked_by((0, 5), Self::opponent(player)) &&
+                    !self.is_square_attacked_by((0, 6), Self::opponent(player))
+            },
+        }
+    }
+
+    // Left side
+    pub fn can_castle_queenside(&mut self) -> bool {
+        let player = self.get_turn();
+        match player {
+            Player::White => {
+                self.white_castling_q &&
+                    self.is_path_clear_castling(player, false) &&
+                    !self.is_king_in_check(player) &&
+                    !self.is_square_attacked_by((7, 2), Self::opponent(player)) &&
+                    !self.is_square_attacked_by((7, 3), Self::opponent(player))
+
+            },
+            Player::Black => {
+                self.black_castling_q &&
+                    self.is_path_clear_castling(player, false) &&
+                    !self.is_king_in_check(player) &&
+                    !self.is_square_attacked_by((0, 2), Self::opponent(player)) &&
+                    !self.is_square_attacked_by((0, 3), Self::opponent(player))
+            },
+        }
+    }
+
+    pub fn is_path_clear_castling(&self, player: Player, kingside: bool) -> bool {
+        let all = self.get_occupied(Player::White) | self.get_occupied(Player::White);
+
+        let path_mask = match (player, kingside) {
+            (Player::White, true) => 0x60, // Squares 61, 62
+            (Player::White, false) => 0x0e, // Squares 57, 58, 59
+            (Player::Black, true) => 0x6000000000000000, // Squares 5, 6
+            (Player::Black, false) => 0x0e00000000000000, // Squares 1, 2, 3
+        };
+        
+        (all & path_mask) == 0
+    }
+
+    // BUG: Something recursively calls the king move generation, do all - king
+    fn is_king_in_check(&mut self, player: Player) -> bool {
+        let king_board = match player {
+            Player::White => self.white[PieceKind::King as usize],
+            Player::Black => self.black[PieceKind::King as usize],
+        };
+
+        let king = Self::u64_to_row_col(king_board);
+
+        self.is_square_attacked_by(king, Self::opponent(player))
+    }
+
+    // NOTE: Generates all available moves - can probably be optimised
+    fn is_square_attacked_by(&mut self, (row, col): (i32, i32), player: Player) -> bool {
+        // let all = MoveGen::all(self, player);
+
+        // all.iter()
+        //     .any(|x| x.to == Self::row_col_to_index(row, col))
+        false
     }
 }
 

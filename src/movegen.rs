@@ -35,9 +35,10 @@ impl ChessMove {
 pub struct MoveGen {
 }
 
+// NOTE: Does the board have to be mutably borrowed in all these?
 impl MoveGen {
-    pub fn all(board: &mut Board) -> Vec<ChessMove> {
-        let (queen, king): (u64, u64) = match board.get_turn() {
+    pub fn all(board: &mut Board, player: Player) -> Vec<ChessMove> {
+        let (queen, king): (u64, u64) = match player {
             Player::White => (board.white[PieceKind::Queen as usize], board.white[PieceKind::King as usize]),
             Player::Black => (board.black[PieceKind::Queen as usize], board.black[PieceKind::King as usize]),
         };
@@ -248,17 +249,6 @@ impl MoveGen {
         moves
     }
 
-    /*
-     * ----- RULES FOR CASTLING -----
-     * 1. King nor rook cannot have previously moved
-     * 2. There are no pieces between the king and the rook
-     * 3. The king is not in check
-     * 4. The king does not pass through or finish on a square that is attacked by an enemy piece
-    */
-    fn castling(board: &mut Board, (x, y): (i32, i32)) -> ChessMove {
-        todo!()
-    }
-
     pub fn rook(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
         let dirs = [(0, -1), (0, 1), (-1, 0), (1, 0)];
         let friends = board.get_occupied(board.get_turn());
@@ -381,6 +371,9 @@ impl MoveGen {
             }
         }
 
+        // TODO: call the castling function
+        moves.extend(Self::castling(board, (x, y)));
+
         moves
     }
 
@@ -393,6 +386,52 @@ impl MoveGen {
             PieceKind::Queen => Self::queen(board, coords),
             PieceKind::King => Self::king(board, coords)
         }
+    }
+
+    /*
+     * ----- RULES FOR CASTLING -----
+     * 1. King nor rook cannot have previously moved
+     * 2. There are no pieces between the king and the rook
+     * 3. The king is not in check
+     * 4. The king does not pass through or finish on a square that is attacked by an enemy piece
+    */
+    fn castling(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
+        let mut moves: Vec<ChessMove> = vec![];
+        let player = board.get_turn();
+
+        println!("yo");
+
+        if board.can_castle_kingside() {
+            let to = match player {
+                Player::White => 62, // g1
+                Player::Black => 6,  // g8
+            };
+
+            moves.push(ChessMove::new(
+                    Board::row_col_to_index(x, y),
+                    to,
+                    PieceKind::King,
+                    player,
+            ));
+        }
+
+        if board.can_castle_queenside() {
+            let to = match player {
+                Player::White => 58, // c1
+                Player::Black => 2,  // c8
+            };
+
+            moves.push(ChessMove::new(
+                    Board::row_col_to_index(x, y),
+                    to,
+                    PieceKind::King,
+                    player,
+            ));
+        }
+
+        println!("castling moves available: {}", moves.len());
+
+        moves
     }
 }
 
