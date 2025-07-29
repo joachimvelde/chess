@@ -44,18 +44,35 @@ impl MoveGen {
         };
 
         let mut moves: Vec<ChessMove> = Vec::new();
-        moves.extend(Self::pawns(board));
-        moves.extend(Self::knights(board));
-        moves.extend(Self::bishops(board));
-        moves.extend(Self::rooks(board));
-        moves.extend(Self::queen(board, Board::u64_to_row_col(queen)));
-        moves.extend(Self::king(board, Board::u64_to_row_col(king)));
+        moves.extend(Self::pawns(board, player));
+        moves.extend(Self::knights(board, player));
+        moves.extend(Self::bishops(board, player));
+        moves.extend(Self::rooks(board, player));
+        moves.extend(Self::queen(board, player, Board::u64_to_row_col(queen)));
+        moves.extend(Self::king(board, player, Board::u64_to_row_col(king)));
 
         moves
     }
 
-    pub fn pawn(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
-        let friends = board.get_occupied(board.get_turn());
+    pub fn all_no_castling(board: &mut Board, player: Player) -> Vec<ChessMove> {
+        let (queen, king): (u64, u64) = match player {
+            Player::White => (board.white[PieceKind::Queen as usize], board.white[PieceKind::King as usize]),
+            Player::Black => (board.black[PieceKind::Queen as usize], board.black[PieceKind::King as usize]),
+        };
+
+        let mut moves: Vec<ChessMove> = Vec::new();
+        moves.extend(Self::pawns(board, player));
+        moves.extend(Self::knights(board, player));
+        moves.extend(Self::bishops(board, player));
+        moves.extend(Self::rooks(board, player));
+        moves.extend(Self::queen(board, player, Board::u64_to_row_col(queen)));
+        moves.extend(Self::king_no_castling(board, player, Board::u64_to_row_col(king)));
+
+        moves
+    }
+
+    pub fn pawn(board: &mut Board, player: Player, (x, y): (i32, i32)) -> Vec<ChessMove> {
+        let friends = board.get_occupied(player);
 
         let mut moves: Vec<ChessMove> = Vec::new();
 
@@ -68,7 +85,7 @@ impl MoveGen {
                             Board::row_col_to_index(x, y),
                             Board::row_col_to_index(x - 1, y),
                             PieceKind::Pawn,
-                            board.get_turn()
+                            player,
                     ));
                    
                     // Straight doulbe tile moves
@@ -78,7 +95,7 @@ impl MoveGen {
                                 Board::row_col_to_index(x, y),
                                 Board::row_col_to_index(x - 2, y),
                                 PieceKind::Pawn,
-                                board.get_turn()
+                                player,
                             ));
                     }
                 }
@@ -91,7 +108,7 @@ impl MoveGen {
                                 Board::row_col_to_index(x, y),
                                 Board::row_col_to_index(to_x, to_y),
                                 PieceKind::Pawn,
-                                board.get_turn()
+                                player,
                         ));
                     }
                 }
@@ -104,7 +121,7 @@ impl MoveGen {
                             Board::row_col_to_index(x, y),
                             Board::row_col_to_index(x + 1, y),
                             PieceKind::Pawn,
-                            board.get_turn()
+                            player,
                     ));
                    
                     // Straight doulbe tile moves
@@ -114,7 +131,7 @@ impl MoveGen {
                                 Board::row_col_to_index(x, y),
                                 Board::row_col_to_index(x + 2, y),
                                 PieceKind::Pawn,
-                                board.get_turn()
+                                player,
                             ));
                     }
                 }
@@ -127,7 +144,7 @@ impl MoveGen {
                                 Board::row_col_to_index(x, y),
                                 Board::row_col_to_index(to_x, to_y),
                                 PieceKind::Pawn,
-                                board.get_turn()
+                                player,
                         ));
                     }
                 }
@@ -137,24 +154,24 @@ impl MoveGen {
         moves
     }
 
-    pub fn pawns(board: &mut Board) -> Vec<ChessMove> {
+    pub fn pawns(board: &mut Board, player: Player) -> Vec<ChessMove> {
         let mut moves: Vec<ChessMove> = Vec::new();
-        let pawns = match board.get_turn() {
+        let pawns = match player {
             Player::White => board.white[PieceKind::Pawn as usize],
             Player::Black => board.black[PieceKind::Pawn as usize]
         };
         
         for i in 0..u64::BITS {
             if (pawns >> i) & 0b1 != 0 {
-                moves.extend(Self::pawn(board, Board::index_to_row_col(i as i32)));
+                moves.extend(Self::pawn(board, player, Board::index_to_row_col(i as i32)));
             }
         }
 
         moves
     }
 
-    pub fn knight(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
-        let friends = board.get_occupied(board.get_turn());
+    pub fn knight(board: &mut Board, player: Player, (x, y): (i32, i32)) -> Vec<ChessMove> {
+        let friends = board.get_occupied(player);
 
         let mut moves: Vec<ChessMove> = Vec::new();
 
@@ -166,7 +183,7 @@ impl MoveGen {
                         Board::row_col_to_index(x, y),
                         Board::row_col_to_index(to_x, to_y),
                         PieceKind::Knight,
-                        board.get_turn()
+                        player,
                 ));
             }
         }
@@ -174,25 +191,25 @@ impl MoveGen {
         moves
     }
 
-    pub fn knights(board: &mut Board) -> Vec<ChessMove> {
+    pub fn knights(board: &mut Board, player: Player) -> Vec<ChessMove> {
         let mut moves: Vec<ChessMove> = Vec::new();
-        let knights = match board.get_turn() {
+        let knights = match player {
             Player::White => board.white[PieceKind::Knight as usize],
             Player::Black => board.black[PieceKind::Knight as usize]
         };
         
         for i in 0..u64::BITS {
             if (knights >> i) & 0b1 != 0 {
-                moves.extend(Self::knight(board, Board::index_to_row_col(i as i32)));
+                moves.extend(Self::knight(board, player, Board::index_to_row_col(i as i32)));
             }
         }
 
         moves
     }
 
-    pub fn bishop(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
+    pub fn bishop(board: &mut Board, player: Player, (x, y): (i32, i32)) -> Vec<ChessMove> {
         let dirs = [(-1, -1), (-1, 1), (1, -1), (1, 1)];
-        let friends = board.get_occupied(board.get_turn());
+        let friends = board.get_occupied(player);
         let mut moves: Vec<ChessMove> = Vec::new();
 
         for (dx, dy) in dirs {
@@ -211,7 +228,7 @@ impl MoveGen {
                             Board::row_col_to_index(x, y),
                             Board::row_col_to_index(to_x, to_y),
                             PieceKind::Bishop,
-                            board.get_turn()
+                            player,
                     ));
                 } else {
                     if Board::row_col_to_u64(to_x, to_y) & friends == 0 {
@@ -220,7 +237,7 @@ impl MoveGen {
                                 Board::row_col_to_index(x, y),
                                 Board::row_col_to_index(to_x, to_y),
                                 PieceKind::Bishop,
-                                board.get_turn()
+                                player,
                         ));
                         break;
                     } else {
@@ -233,23 +250,23 @@ impl MoveGen {
         moves
     }
 
-    pub fn bishops(board: &mut Board) -> Vec<ChessMove> {
+    pub fn bishops(board: &mut Board, player: Player) -> Vec<ChessMove> {
         let mut moves: Vec<ChessMove> = Vec::new();
-        let knights = match board.get_turn() {
+        let knights = match player {
             Player::White => board.white[PieceKind::Bishop as usize],
             Player::Black => board.black[PieceKind::Bishop as usize]
         };
         
         for i in 0..u64::BITS {
             if (knights >> i) & 0b1 != 0 {
-                moves.extend(Self::bishop(board, Board::index_to_row_col(i as i32)));
+                moves.extend(Self::bishop(board, player, Board::index_to_row_col(i as i32)));
             }
         }
 
         moves
     }
 
-    pub fn rook(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
+    pub fn rook(board: &mut Board, player: Player, (x, y): (i32, i32)) -> Vec<ChessMove> {
         let dirs = [(0, -1), (0, 1), (-1, 0), (1, 0)];
         let friends = board.get_occupied(board.get_turn());
         let mut moves: Vec<ChessMove> = Vec::new();
@@ -270,7 +287,7 @@ impl MoveGen {
                             Board::row_col_to_index(x, y),
                             Board::row_col_to_index(to_x, to_y),
                             PieceKind::Rook,
-                            board.get_turn()
+                            player,
                     ));
                 } else {
                     if Board::row_col_to_u64(to_x, to_y) & friends == 0 {
@@ -279,7 +296,7 @@ impl MoveGen {
                                 Board::row_col_to_index(x, y),
                                 Board::row_col_to_index(to_x, to_y),
                                 PieceKind::Rook,
-                                board.get_turn()
+                                player,
                         ));
                         break;
                     } else {
@@ -292,16 +309,16 @@ impl MoveGen {
         moves
     }
 
-    pub fn rooks(board: &mut Board) -> Vec<ChessMove> {
+    pub fn rooks(board: &mut Board, player: Player) -> Vec<ChessMove> {
         let mut moves: Vec<ChessMove> = Vec::new();
-        let rooks = match board.get_turn() {
+        let rooks = match player {
             Player::White => board.white[PieceKind::Rook as usize],
             Player::Black => board.black[PieceKind::Rook as usize]
         };
         
         for i in 0..u64::BITS {
             if (rooks >> i) & 0b1 != 0 {
-                moves.extend(Self::rook(board, Board::index_to_row_col(i as i32)));
+                moves.extend(Self::rook(board, player, Board::index_to_row_col(i as i32)));
             }
         }
 
@@ -309,10 +326,10 @@ impl MoveGen {
     }
 
     // NOTE: Why do we have the x and y parameters?
-    pub fn queen(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
+    pub fn queen(board: &mut Board, player: Player, (x, y): (i32, i32)) -> Vec<ChessMove> {
         let dirs = [(0, -1), (0, 1), (-1, 0), (1, 0),
                     (-1, -1), (-1, 1), (1, -1), (1, 1)];
-        let friends = board.get_occupied(board.get_turn());
+        let friends = board.get_occupied(player);
         let mut moves: Vec<ChessMove> = Vec::new();
 
         for (dx, dy) in dirs {
@@ -331,7 +348,7 @@ impl MoveGen {
                             Board::row_col_to_index(x, y),
                             Board::row_col_to_index(to_x, to_y),
                             PieceKind::Queen,
-                            board.get_turn()
+                            player,
                     ));
                 } else {
                     if Board::row_col_to_u64(to_x, to_y) & friends == 0 {
@@ -340,7 +357,7 @@ impl MoveGen {
                                 Board::row_col_to_index(x, y),
                                 Board::row_col_to_index(to_x, to_y),
                                 PieceKind::Queen,
-                                board.get_turn()
+                                player,
                         ));
                         break;
                     } else {
@@ -353,8 +370,8 @@ impl MoveGen {
         moves
     }
 
-    pub fn king(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
-        let friends = board.get_occupied(board.get_turn());
+    pub fn king_no_castling(board: &mut Board, player: Player, (x, y): (i32, i32)) -> Vec<ChessMove> {
+        let friends = board.get_occupied(player);
 
         let mut moves: Vec<ChessMove> = Vec::new();
 
@@ -366,25 +383,48 @@ impl MoveGen {
                         Board::row_col_to_index(x, y),
                         Board::row_col_to_index(to_x, to_y),
                         PieceKind::King,
-                        board.get_turn()
+                        player,
                 ));
             }
         }
 
-        // TODO: call the castling function
+        moves
+    }
+
+    pub fn king(board: &mut Board, player: Player, (x, y): (i32, i32)) -> Vec<ChessMove> {
+        let friends = board.get_occupied(player);
+
+        let mut moves: Vec<ChessMove> = Vec::new();
+
+        for &(dx, dy) in &KING_MOVES {
+            let (to_x, to_y) = (x + dx, y + dy);
+            if board.is_valid((to_x, to_y), friends) {
+                moves.push(
+                    ChessMove::new(
+                        Board::row_col_to_index(x, y),
+                        Board::row_col_to_index(to_x, to_y),
+                        PieceKind::King,
+                        player,
+                ));
+            }
+        }
+
         moves.extend(Self::castling(board, (x, y)));
 
         moves
     }
 
     pub fn piece_at(board: &mut Board, coords: (i32, i32)) -> Vec<ChessMove> {
+        let piece = board.at(coords).unwrap();
+        let player = piece.player;
+
         match board.at(coords).unwrap().kind {
-            PieceKind::Pawn => Self::pawn(board, coords),
-            PieceKind::Knight => Self::knight(board, coords),
-            PieceKind::Bishop => Self::bishop(board, coords),
-            PieceKind::Rook => Self::rook(board, coords),
-            PieceKind::Queen => Self::queen(board, coords),
-            PieceKind::King => Self::king(board, coords)
+            PieceKind::Pawn => Self::pawn(board, player, coords),
+            PieceKind::Knight => Self::knight(board, player, coords),
+            PieceKind::Bishop => Self::bishop(board, player, coords),
+            PieceKind::Rook => Self::rook(board, player, coords),
+            PieceKind::Queen => Self::queen(board, player, coords),
+            PieceKind::King => Self::king(board, player, coords)
         }
     }
 
@@ -398,8 +438,6 @@ impl MoveGen {
     fn castling(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
         let mut moves: Vec<ChessMove> = vec![];
         let player = board.get_turn();
-
-        println!("yo");
 
         if board.can_castle_kingside() {
             let to = match player {

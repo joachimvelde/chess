@@ -412,7 +412,7 @@ impl Board {
     }
 
     pub fn is_path_clear_castling(&self, player: Player, kingside: bool) -> bool {
-        let all = self.get_occupied(Player::White) | self.get_occupied(Player::White);
+        let all = !self.get_empty();
 
         let path_mask = match (player, kingside) {
             (Player::White, true) => 0x60, // Squares 61, 62
@@ -424,7 +424,6 @@ impl Board {
         (all & path_mask) == 0
     }
 
-    // BUG: Something recursively calls the king move generation, do all - king
     fn is_king_in_check(&mut self, player: Player) -> bool {
         let king_board = match player {
             Player::White => self.white[PieceKind::King as usize],
@@ -438,11 +437,10 @@ impl Board {
 
     // NOTE: Generates all available moves - can probably be optimised
     fn is_square_attacked_by(&mut self, (row, col): (i32, i32), player: Player) -> bool {
-        // let all = MoveGen::all(self, player);
+        let all = MoveGen::all_no_castling(self, player);
 
-        // all.iter()
-        //     .any(|x| x.to == Self::row_col_to_index(row, col))
-        false
+        all.iter()
+            .any(|x| x.to == Self::row_col_to_index(row, col))
     }
 }
 
