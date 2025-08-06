@@ -282,6 +282,7 @@ impl Board {
     pub fn apply_move(&mut self, m: ChessMove) {
         // Handle kills
         let victim = self.at(Self::index_to_row_col(m.to));
+
         if victim.is_some() {
             match victim.unwrap().player {
                 Player::White => self.white[victim.unwrap().kind as usize] ^= 1u64 << m.to,
@@ -293,6 +294,51 @@ impl Board {
         match m.player {
             Player::White => self.white[m.kind as usize] ^= 1_u64 << m.from | 1_u64 << m.to,
             Player::Black => self.black[m.kind as usize] ^= 1_u64 << m.from | 1_u64 << m.to
+        }
+
+        // Move the rook if castling
+        if m.is_castling() {
+            let king_to = Self::index_to_row_col(m.to);
+
+            // Kingside
+            match (m.player, king_to) {
+                (Player::White, (7, 6)) => {
+                    let from = Self::row_col_to_index(7, 7);
+                    let to = Self::row_col_to_index(7, 5);
+                    self.white[PieceKind::Rook as usize] ^= 1_u64 << from | 1_u64 << to;
+                }
+                _ => ()
+            }
+
+            // Queenside
+            match (m.player, king_to) {
+                (Player::White, (7, 2)) => {
+                    let from = Self::row_col_to_index(7, 0);
+                    let to = Self::row_col_to_index(7, 3);
+                    self.white[PieceKind::Rook as usize] ^= 1_u64 << from | 1_u64 << to;
+                }
+                _ => ()
+            }
+
+            // Kingside
+            match (m.player, king_to) {
+                (Player::Black, (0, 6)) => {
+                    let from = Self::row_col_to_index(0, 7);
+                    let to = Self::row_col_to_index(0, 5);
+                    self.black[PieceKind::Rook as usize] ^= 1_u64 << from | 1_u64 << to;
+                }
+                _ => ()
+            }
+
+            // Queenside
+            match (m.player, king_to) {
+                (Player::Black, (0, 2)) => {
+                    let from = Self::row_col_to_index(0, 0);
+                    let to = Self::row_col_to_index(0, 3);
+                    self.black[PieceKind::Rook as usize] ^= 1_u64 << from | 1_u64 << to;
+                }
+                _ => ()
+            }
         }
 
         // Promotions
@@ -329,9 +375,9 @@ impl Board {
         }
 
         // Cannot castle without a rook
-        if let Some(victim) = self.at(Self::index_to_row_col(m.to)) {
-            if victim.kind == PieceKind::Rook {
-                match (victim.player, Self::index_to_row_col(m.to)) {
+        if victim.is_some() {
+            if victim.unwrap().kind == PieceKind::Rook {
+                match (victim.unwrap().player, Self::index_to_row_col(m.to)) {
                     (Player::White, (7, 0)) => self.white_castling_q = false,
                     (Player::White, (7, 7)) => self.white_castling_k = false,
                     (Player::Black, (0, 0)) => self.black_castling_q = false,
@@ -370,6 +416,7 @@ impl Board {
     // Right side
     pub fn can_castle_kingside(&mut self) -> bool {
         let player = self.get_turn();
+
         match player {
             Player::White => {
                 self.white_castling_k &&
@@ -399,7 +446,6 @@ impl Board {
                     !self.is_king_in_check(player) &&
                     !self.is_square_attacked_by((7, 2), Self::opponent(player)) &&
                     !self.is_square_attacked_by((7, 3), Self::opponent(player))
-
             },
             Player::Black => {
                 self.black_castling_q &&
@@ -415,10 +461,10 @@ impl Board {
         let all = !self.get_empty();
 
         let path_mask = match (player, kingside) {
-            (Player::White, true) => 0x60, // Squares 61, 62
-            (Player::White, false) => 0x0e, // Squares 57, 58, 59
-            (Player::Black, true) => 0x6000000000000000, // Squares 5, 6
-            (Player::Black, false) => 0x0e00000000000000, // Squares 1, 2, 3
+            (Player::White, true) =>0x6000000000000000,
+            (Player::White, false) =>0x0e00000000000000,
+            (Player::Black, true) => 0x60,
+            (Player::Black, false) => 0x0e,
         };
         
         (all & path_mask) == 0
@@ -435,9 +481,10 @@ impl Board {
         self.is_square_attacked_by(king, Self::opponent(player))
     }
 
-    // NOTE: Generates all available moves - can probably be optimised
+    // NOTE: Generates all available moves - can be optimised
     fn is_square_attacked_by(&mut self, (row, col): (i32, i32), player: Player) -> bool {
-        let all = MoveGen::all_no_castling(self, player);
+        let mut all = MoveGen::all_no_castling(self, player);
+        all.extend(MoveGen::pawn_attacks(self, player));
 
         all.iter()
             .any(|x| x.to == Self::row_col_to_index(row, col))

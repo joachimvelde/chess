@@ -30,6 +30,14 @@ impl ChessMove {
     pub fn new(from: i32, to: i32, kind: PieceKind, player: Player) -> Self {
         return Self { from, to, kind, player }
     }
+
+    pub fn is_castling(&self) -> bool {
+        self.kind == PieceKind::King && {
+            let from = Board::index_to_row_col(self.from);
+            let to = Board::index_to_row_col(self.to);
+            (to.1 - from.1).abs() == 2
+        }
+    }
 }
 
 pub struct MoveGen {
@@ -160,10 +168,56 @@ impl MoveGen {
             Player::White => board.white[PieceKind::Pawn as usize],
             Player::Black => board.black[PieceKind::Pawn as usize]
         };
-        
+
         for i in 0..u64::BITS {
             if (pawns >> i) & 0b1 != 0 {
                 moves.extend(Self::pawn(board, player, Board::index_to_row_col(i as i32)));
+            }
+        }
+
+        moves
+    }
+
+    // Needed because pawns have special kill moves
+    pub fn pawn_attacks(board: &mut Board, player: Player) -> Vec<ChessMove> {
+        let mut moves: Vec<ChessMove> = Vec::new();
+        let friends = board.get_occupied(player);
+        let pawns = match player {
+            Player::White => board.white[PieceKind::Pawn as usize],
+            Player::Black => board.black[PieceKind::Pawn as usize]
+        };
+        
+        for i in 0..u64::BITS {
+            if (pawns >> i) & 0b1 != 0 {
+                let (row, col) = Board::u64_to_row_col((pawns & 0b1) >> 0b1);
+                match player {
+                    Player::White => {
+                        for &(to_x, to_y) in &[(row - 1, col - 1), (row - 1, col + 1)] {
+                            if board.is_valid((to_x, to_y), friends) && board.is_occupied((to_x, to_y)) {
+                                moves.push(
+                                    ChessMove::new(
+                                        Board::row_col_to_index(row, col),
+                                        Board::row_col_to_index(to_x, to_y),
+                                        PieceKind::Pawn,
+                                        player,
+                                    ));
+                            }
+                        }
+                    },
+                    Player::Black => {
+                        for &(to_x, to_y) in &[(row + 1, col - 1), (row + 1, col + 1)] {
+                            if board.is_valid((to_x, to_y), friends) && board.is_occupied((to_x, to_y)) {
+                                moves.push(
+                                    ChessMove::new(
+                                        Board::row_col_to_index(row, col),
+                                        Board::row_col_to_index(to_x, to_y),
+                                        PieceKind::Pawn,
+                                        player,
+                                    ));
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -184,7 +238,7 @@ impl MoveGen {
                         Board::row_col_to_index(to_x, to_y),
                         PieceKind::Knight,
                         player,
-                ));
+                    ));
             }
         }
 
@@ -197,7 +251,7 @@ impl MoveGen {
             Player::White => board.white[PieceKind::Knight as usize],
             Player::Black => board.black[PieceKind::Knight as usize]
         };
-        
+
         for i in 0..u64::BITS {
             if (knights >> i) & 0b1 != 0 {
                 moves.extend(Self::knight(board, player, Board::index_to_row_col(i as i32)));
@@ -229,7 +283,7 @@ impl MoveGen {
                             Board::row_col_to_index(to_x, to_y),
                             PieceKind::Bishop,
                             player,
-                    ));
+                        ));
                 } else {
                     if Board::row_col_to_u64(to_x, to_y) & friends == 0 {
                         moves.push(
@@ -238,7 +292,7 @@ impl MoveGen {
                                 Board::row_col_to_index(to_x, to_y),
                                 PieceKind::Bishop,
                                 player,
-                        ));
+                            ));
                         break;
                     } else {
                         break;
@@ -256,7 +310,7 @@ impl MoveGen {
             Player::White => board.white[PieceKind::Bishop as usize],
             Player::Black => board.black[PieceKind::Bishop as usize]
         };
-        
+
         for i in 0..u64::BITS {
             if (knights >> i) & 0b1 != 0 {
                 moves.extend(Self::bishop(board, player, Board::index_to_row_col(i as i32)));
@@ -268,7 +322,7 @@ impl MoveGen {
 
     pub fn rook(board: &mut Board, player: Player, (x, y): (i32, i32)) -> Vec<ChessMove> {
         let dirs = [(0, -1), (0, 1), (-1, 0), (1, 0)];
-        let friends = board.get_occupied(board.get_turn());
+        let friends = board.get_occupied(player);
         let mut moves: Vec<ChessMove> = Vec::new();
 
         for (dx, dy) in dirs {
@@ -288,7 +342,7 @@ impl MoveGen {
                             Board::row_col_to_index(to_x, to_y),
                             PieceKind::Rook,
                             player,
-                    ));
+                        ));
                 } else {
                     if Board::row_col_to_u64(to_x, to_y) & friends == 0 {
                         moves.push(
@@ -297,7 +351,7 @@ impl MoveGen {
                                 Board::row_col_to_index(to_x, to_y),
                                 PieceKind::Rook,
                                 player,
-                        ));
+                            ));
                         break;
                     } else {
                         break;
@@ -315,7 +369,7 @@ impl MoveGen {
             Player::White => board.white[PieceKind::Rook as usize],
             Player::Black => board.black[PieceKind::Rook as usize]
         };
-        
+
         for i in 0..u64::BITS {
             if (rooks >> i) & 0b1 != 0 {
                 moves.extend(Self::rook(board, player, Board::index_to_row_col(i as i32)));
@@ -328,7 +382,7 @@ impl MoveGen {
     // NOTE: Why do we have the x and y parameters?
     pub fn queen(board: &mut Board, player: Player, (x, y): (i32, i32)) -> Vec<ChessMove> {
         let dirs = [(0, -1), (0, 1), (-1, 0), (1, 0),
-                    (-1, -1), (-1, 1), (1, -1), (1, 1)];
+        (-1, -1), (-1, 1), (1, -1), (1, 1)];
         let friends = board.get_occupied(player);
         let mut moves: Vec<ChessMove> = Vec::new();
 
@@ -349,7 +403,7 @@ impl MoveGen {
                             Board::row_col_to_index(to_x, to_y),
                             PieceKind::Queen,
                             player,
-                    ));
+                        ));
                 } else {
                     if Board::row_col_to_u64(to_x, to_y) & friends == 0 {
                         moves.push(
@@ -358,7 +412,7 @@ impl MoveGen {
                                 Board::row_col_to_index(to_x, to_y),
                                 PieceKind::Queen,
                                 player,
-                        ));
+                            ));
                         break;
                     } else {
                         break;
@@ -384,7 +438,7 @@ impl MoveGen {
                         Board::row_col_to_index(to_x, to_y),
                         PieceKind::King,
                         player,
-                ));
+                    ));
             }
         }
 
@@ -405,7 +459,7 @@ impl MoveGen {
                         Board::row_col_to_index(to_x, to_y),
                         PieceKind::King,
                         player,
-                ));
+                    ));
             }
         }
 
@@ -434,19 +488,20 @@ impl MoveGen {
      * 2. There are no pieces between the king and the rook
      * 3. The king is not in check
      * 4. The king does not pass through or finish on a square that is attacked by an enemy piece
-    */
+     */
     fn castling(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
         let mut moves: Vec<ChessMove> = vec![];
         let player = board.get_turn();
 
         if board.can_castle_kingside() {
             let to = match player {
-                Player::White => 62, // g1
-                Player::Black => 6,  // g8
+                Player::White => Board::row_col_to_index(7, 6), // g1
+                Player::Black => Board::row_col_to_index(0, 6), // g8
             };
 
             moves.push(ChessMove::new(
-                    Board::row_col_to_index(x, y),
+                    Board::row_col_to_index(x, y), // Are we misusing x and y coordinates as
+                                                   // row/col?
                     to,
                     PieceKind::King,
                     player,
@@ -455,8 +510,8 @@ impl MoveGen {
 
         if board.can_castle_queenside() {
             let to = match player {
-                Player::White => 58, // c1
-                Player::Black => 2,  // c8
+                Player::White => Board::row_col_to_index(7, 2), // c1
+                Player::Black => Board::row_col_to_index(0, 2), // c8
             };
 
             moves.push(ChessMove::new(
@@ -466,8 +521,6 @@ impl MoveGen {
                     player,
             ));
         }
-
-        println!("castling moves available: {}", moves.len());
 
         moves
     }
