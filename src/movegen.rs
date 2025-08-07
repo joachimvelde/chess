@@ -84,7 +84,7 @@ impl MoveGen {
 
         let mut moves: Vec<ChessMove> = Vec::new();
 
-        match board.get_turn() {
+        match player {
             Player::White => {
                 // Straight single tile moves
                 if !board.is_occupied((x - 1, y)) {
@@ -181,7 +181,7 @@ impl MoveGen {
     // Needed because pawns have special kill moves
     pub fn pawn_attacks(board: &mut Board, player: Player) -> Vec<ChessMove> {
         let mut moves: Vec<ChessMove> = Vec::new();
-        let friends = board.get_occupied(player);
+
         let pawns = match player {
             Player::White => board.white[PieceKind::Pawn as usize],
             Player::Black => board.black[PieceKind::Pawn as usize]
@@ -189,33 +189,21 @@ impl MoveGen {
         
         for i in 0..u64::BITS {
             if (pawns >> i) & 0b1 != 0 {
-                let (row, col) = Board::u64_to_row_col((pawns & 0b1) >> 0b1);
-                match player {
-                    Player::White => {
-                        for &(to_x, to_y) in &[(row - 1, col - 1), (row - 1, col + 1)] {
-                            if board.is_valid((to_x, to_y), friends) && board.is_occupied((to_x, to_y)) {
-                                moves.push(
-                                    ChessMove::new(
-                                        Board::row_col_to_index(row, col),
-                                        Board::row_col_to_index(to_x, to_y),
-                                        PieceKind::Pawn,
-                                        player,
-                                    ));
-                            }
-                        }
-                    },
-                    Player::Black => {
-                        for &(to_x, to_y) in &[(row + 1, col - 1), (row + 1, col + 1)] {
-                            if board.is_valid((to_x, to_y), friends) && board.is_occupied((to_x, to_y)) {
-                                moves.push(
-                                    ChessMove::new(
-                                        Board::row_col_to_index(row, col),
-                                        Board::row_col_to_index(to_x, to_y),
-                                        PieceKind::Pawn,
-                                        player,
-                                    ));
-                            }
-                        }
+                let (row, col) = Board::u64_to_row_col(1u64 << i);
+
+                let attacks = match player {
+                    Player::White => vec![(row - 1, col - 1), (row - 1, col + 1)],
+                    Player::Black => vec![(row + 1, col - 1), (row + 1, col + 1)],
+                };
+
+                for (to_x, to_y) in attacks {
+                    if board.is_valid((to_x, to_y), board.get_occupied(player)) {
+                        moves.push(ChessMove::new(
+                                Board::row_col_to_index(row, col),
+                                Board::row_col_to_index(row, col),
+                                PieceKind::Pawn,
+                                player,
+                        ));
                     }
                 }
             }

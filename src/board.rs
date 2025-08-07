@@ -422,16 +422,16 @@ impl Board {
                 self.white_castling_k &&
                     self.is_path_clear_castling(player, true) &&
                     !self.is_king_in_check(player) &&
-                    !self.is_square_attacked_by((7, 5), Self::opponent(player)) &&
-                    !self.is_square_attacked_by((7, 6), Self::opponent(player))
+                    !self.is_square_attacked_by((7, 5), Player::Black) &&
+                    !self.is_square_attacked_by((7, 6), Player::Black)
 
             },
             Player::Black => {
                 self.black_castling_k &&
                     self.is_path_clear_castling(player, true) &&
                     !self.is_king_in_check(player) &&
-                    !self.is_square_attacked_by((0, 5), Self::opponent(player)) &&
-                    !self.is_square_attacked_by((0, 6), Self::opponent(player))
+                    !self.is_square_attacked_by((0, 5), Player::White) &&
+                    !self.is_square_attacked_by((0, 6), Player::White)
             },
         }
     }
@@ -444,15 +444,15 @@ impl Board {
                 self.white_castling_q &&
                     self.is_path_clear_castling(player, false) &&
                     !self.is_king_in_check(player) &&
-                    !self.is_square_attacked_by((7, 2), Self::opponent(player)) &&
-                    !self.is_square_attacked_by((7, 3), Self::opponent(player))
+                    !self.is_square_attacked_by((7, 2), Player::Black) &&
+                    !self.is_square_attacked_by((7, 3), Player::Black)
             },
             Player::Black => {
                 self.black_castling_q &&
                     self.is_path_clear_castling(player, false) &&
                     !self.is_king_in_check(player) &&
-                    !self.is_square_attacked_by((0, 2), Self::opponent(player)) &&
-                    !self.is_square_attacked_by((0, 3), Self::opponent(player))
+                    !self.is_square_attacked_by((0, 2), Player::White) &&
+                    !self.is_square_attacked_by((0, 3), Player::White)
             },
         }
     }
