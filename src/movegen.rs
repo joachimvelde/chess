@@ -196,11 +196,11 @@ impl MoveGen {
                     Player::Black => vec![(row + 1, col - 1), (row + 1, col + 1)],
                 };
 
-                for (to_x, to_y) in attacks {
-                    if board.is_valid((to_x, to_y), board.get_occupied(player)) {
+                for (to_r, to_c) in attacks {
+                    if board.is_valid((to_r, to_c), board.get_occupied(player)) {
                         moves.push(ChessMove::new(
                                 Board::row_col_to_index(row, col),
-                                Board::row_col_to_index(row, col),
+                                Board::row_col_to_index(to_r, to_c),
                                 PieceKind::Pawn,
                                 player,
                         ));
