@@ -451,7 +451,7 @@ impl MoveGen {
             }
         }
 
-        moves.extend(Self::castling(board, (x, y)));
+        moves.extend(Self::castling(board, (x, y), player));
 
         moves
     }
@@ -477,9 +477,8 @@ impl MoveGen {
      * 3. The king is not in check
      * 4. The king does not pass through or finish on a square that is attacked by an enemy piece
      */
-    fn castling(board: &mut Board, (x, y): (i32, i32)) -> Vec<ChessMove> {
+    fn castling(board: &mut Board, (x, y): (i32, i32), player: Player) -> Vec<ChessMove> {
         let mut moves: Vec<ChessMove> = vec![];
-        let player = board.get_turn();
 
         if board.can_castle_kingside() {
             let to = match player {
