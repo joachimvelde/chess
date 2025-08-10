@@ -31,7 +31,7 @@ fn main() {
     // Create the board
     let mut board = Board::new();
     // board.reset();
-    board.apply_fen("rnbqkbnr/PPPPPPPP/8/8/8/8/pppppppp/RNBQKBNR w KQkq - 0 1".to_string());
+    board.apply_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
 
     // load textures   NOTE: These are way too high res
     let black_textures = vec![

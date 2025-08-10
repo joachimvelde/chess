@@ -96,7 +96,7 @@ impl MoveGen {
                             player,
                     ));
                    
-                    // Straight doulbe tile moves
+                    // Straight double tile moves
                     if x == 6 && !board.is_occupied((x - 2, y)) {
                         moves.push(
                             ChessMove::new(
@@ -120,6 +120,21 @@ impl MoveGen {
                         ));
                     }
                 }
+
+                // En passant murders
+                if let Some(en_passant_target) = board.en_passant_target {
+                    let (ep_row, ep_col) = Board::index_to_row_col(en_passant_target);
+                    for &(to_x, to_y) in &[(x - 1, y - 1), (x - 1, y + 1)] {
+                        if (to_x, to_y) == (ep_row, ep_col) {
+                            moves.push(ChessMove::new(
+                                    Board::row_col_to_index(x, y),
+                                    en_passant_target,
+                                    PieceKind::Pawn,
+                                    player,
+                            ));
+                        }
+                    }
+                }
             },
             Player::Black => {
                 // Straight single tile moves
@@ -132,7 +147,7 @@ impl MoveGen {
                             player,
                     ));
                    
-                    // Straight doulbe tile moves
+                    // Straight double tile moves
                     if x == 1 && !board.is_occupied((x + 2, y)) {
                         moves.push(
                             ChessMove::new(
@@ -154,6 +169,21 @@ impl MoveGen {
                                 PieceKind::Pawn,
                                 player,
                         ));
+                    }
+                }
+
+                // En passant murders
+                if let Some(en_passant_target) = board.en_passant_target {
+                    let (ep_row, ep_col) = Board::index_to_row_col(en_passant_target);
+                    for &(to_x, to_y) in &[(x + 1, y - 1), (x + 1, y + 1)] {
+                        if (to_x, to_y) == (ep_row, ep_col) {
+                            moves.push(ChessMove::new(
+                                    Board::row_col_to_index(x, y),
+                                    en_passant_target,
+                                    PieceKind::Pawn,
+                                    player,
+                            ));
+                        }
                     }
                 }
             }

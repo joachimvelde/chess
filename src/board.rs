@@ -12,7 +12,7 @@ pub struct Board {
     pub white_castling_q: bool,
     pub black_castling_k: bool,
     pub black_castling_q: bool,
-    pub en_passant_target: Option<String>,
+    pub en_passant_target: Option<i32>, // Board index
     pub halfmove_clock: i32,
     pub fullmove_number: i32,
 
@@ -122,11 +122,14 @@ impl Board {
         index += 1; // Skip space
 
         // En passant target square
-        if fen.chars().nth(index).unwrap() == '_' {
+        if fen.chars().nth(index).unwrap() == '-' {
             self.en_passant_target = None;
             index += 2;
         } else {
-            self.en_passant_target = Some(fen[index..=index+1].to_string());
+            let square = &fen[index..index + 1];
+            let rank =  8 - (square.chars().nth(1).unwrap() as i32 - 'a' as i32);
+            let file = square.chars().nth(0).unwrap() as i32 - 'a' as i32;
+            self.en_passant_target = Some(Self::row_col_to_index(rank, file));
             index += 3;
         }
 
@@ -280,9 +283,31 @@ impl Board {
     }
 
     pub fn apply_move(&mut self, m: ChessMove) {
+        self.en_passant_target = None;
+
         // Handle kills
         let victim = self.at(Self::index_to_row_col(m.to));
 
+        // Check for en passant capture
+        if m.kind == PieceKind::Pawn && victim.is_none() {
+            let (from_row, from_col) = Self::index_to_row_col(m.from);
+            let (_, to_col) = Self::index_to_row_col(m.to);
+
+            // If pawn moved diagonally two squares, it's an en passant move
+            // NOTE: Maybe we could store this in the ChessMove struct instead?
+            if from_col != to_col {
+                let kill_row = from_row;
+                let kill_index = Self::row_col_to_index(kill_row, to_col);
+
+                // Kill the pawn
+                match Self::opponent(m.player) {
+                    Player::White => self.white[PieceKind::Pawn as usize] ^= 1u64 << kill_index,
+                    Player::Black => self.black[PieceKind::Pawn as usize] ^= 1u64 << kill_index,
+                }
+            }
+        }
+
+        // Normal captures
         if victim.is_some() {
             match victim.unwrap().player {
                 Player::White => self.white[victim.unwrap().kind as usize] ^= 1u64 << m.to,
@@ -294,6 +319,17 @@ impl Board {
         match m.player {
             Player::White => self.white[m.kind as usize] ^= 1_u64 << m.from | 1_u64 << m.to,
             Player::Black => self.black[m.kind as usize] ^= 1_u64 << m.from | 1_u64 << m.to
+        }
+
+        // Set en passant target if a pawn moves doubly
+        if m.kind == PieceKind::Pawn {
+            let (from_row, from_col) = Self::index_to_row_col(m.from);
+            let (to_row, _) = Self::index_to_row_col(m.to);
+
+            if (from_row - to_row).abs() == 2 {
+                let en_passant_row = (from_row + to_row) / 2;
+                self.en_passant_target = Some(Self::row_col_to_index(en_passant_row, from_col));
+            }
         }
 
         // Move the rook if castling
@@ -516,7 +552,7 @@ impl fmt::Display for Board {
         write!(f, "white_castling_q: {}\n", self.white_castling_q)?;
         write!(f, "black_castling_k: {}\n", self.black_castling_k)?;
         write!(f, "black_castling_q: {}\n", self.black_castling_q)?;
-        write!(f, "en_passant_target: {}\n", self.en_passant_target.as_deref().unwrap_or("_"))?;
+        write!(f, "en_passant_target: {}\n", self.en_passant_target.unwrap_or(-1))?;
         write!(f, "halfmove_clock: {}\n", self.halfmove_clock)?;
         write!(f, "fullmove_number: {}\n", self.fullmove_number)?;
 
