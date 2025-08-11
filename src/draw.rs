@@ -131,6 +131,10 @@ fn draw_promotion_ui(d: &mut RaylibDrawHandle, board: &mut Board, mouse: Vector2
     }
 }
 
+pub fn draw_menu(rl: &mut RaylibHandle, thread: &RaylibThread, board: &mut Board) {
+    todo!()
+}
+
 pub fn draw(rl: &mut RaylibHandle, thread: &RaylibThread, board: &mut Board, mouse: Vector2, black_textures: &Vec<Texture2D>, white_textures: &Vec<Texture2D>, show_bits: bool) {
     let mut d = rl.begin_drawing(thread);
     draw_tiles(&mut d, board);

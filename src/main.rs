@@ -110,5 +110,9 @@ fn update(rl: &RaylibHandle, board: &mut Board, mouse: Vector2) {
                 board.deselect();
             }
         }
+
+        if let Some(winner) = board.winner() {
+            println!("Game over, {} wins!", winner);
+        }
     }
 }

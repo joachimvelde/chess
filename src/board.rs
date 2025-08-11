@@ -22,6 +22,7 @@ pub struct Board {
     pub promoting: Option<u64>
 }
 
+#[allow(dead_code)]
 impl Board {
     pub fn new() -> Self {
         Self {
@@ -141,6 +142,18 @@ impl Board {
         // Fullmove number
         let end = fen[index..].find(' ').unwrap_or(fen.len() - index) + index;
         self.fullmove_number = fen[index..end].parse().unwrap_or(0);
+    }
+
+    pub fn winner(&self) -> Option<Player> {
+        if self.black[PieceKind::King as usize] == 0 {
+            return Some(Player::White);
+        }
+
+        if self.white[PieceKind::King as usize] == 0 {
+            return Some(Player::Black);
+        }
+
+        None
     }
 
     pub fn is_game_over(&self) -> bool {
