@@ -1,4 +1,4 @@
-use crate::piece::{Piece, PieceKind, Player};
+use crate::piece::{PieceKind, Player};
 use crate::board::Board;
 
 /*
